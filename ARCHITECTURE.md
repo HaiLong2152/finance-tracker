@@ -25,7 +25,11 @@ finance-tracker-project/
 │   └── test_data.sql        # Dữ liệu mẫu
 ├── frontend/
 │   ├── src/
-│   │   ├── App.jsx          # Shell màn hình hiện tại
+│   │   ├── features/         # Module theo nghiệp vụ
+│   │   │   └── transactions/ # Form và bảng giao dịch
+│   │   ├── services/         # HTTP client và API modules
+│   │   ├── utils/            # Format tiền và ngày
+│   │   ├── App.jsx           # Shell và state màn hình
 │   │   ├── index.css         # Style toàn cục
 │   │   └── main.jsx          # Entry point React
 │   ├── .env.example         # VITE_API_URL

@@ -9,4 +9,8 @@ router.get('/', transactionController.getAllTransactions);
 // POST /api/transactions -> Thêm mới
 router.post('/', transactionController.createTransaction);
 
+router.put('/:id', transactionController.updateTransaction);
+
+router.delete('/:id', transactionController.deleteTransaction);
+
 module.exports = router;

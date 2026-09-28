@@ -8,7 +8,8 @@ CREATE TABLE IF NOT EXISTS categories (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
   type ENUM('income', 'expense') NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_categories_name_type (name, type)
 );
 
 CREATE TABLE IF NOT EXISTS transactions (

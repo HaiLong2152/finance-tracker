@@ -1,6 +1,6 @@
 import { formatDate, formatMoney } from "../../utils/formatters";
 
-function TransactionTable({ transactions, loading }) {
+function TransactionTable({ transactions, loading, onEdit, onDelete }) {
   return (
     <section className="panel" aria-labelledby="list-title">
       <div className="section-heading">
@@ -15,7 +15,7 @@ function TransactionTable({ transactions, loading }) {
         <div className="table-wrap">
           <table>
             <thead>
-              <tr><th>Ngày</th><th>Danh mục</th><th>Loại</th><th className="amount">Số tiền</th><th>Ghi chú</th></tr>
+              <tr><th>Ngày</th><th>Danh mục</th><th>Loại</th><th className="amount">Số tiền</th><th>Ghi chú</th><th>Thao tác</th></tr>
             </thead>
             <tbody>
               {transactions.map((transaction) => (
@@ -25,6 +25,10 @@ function TransactionTable({ transactions, loading }) {
                   <td><span className={`badge ${transaction.type}`}>{transaction.type === "income" ? "Thu" : "Chi"}</span></td>
                   <td className="amount">{formatMoney(transaction.amount)}</td>
                   <td>{transaction.note || "—"}</td>
+                  <td className="actions">
+                    <button type="button" className="button-small button-secondary" onClick={() => onEdit(transaction)}>Sửa</button>
+                    <button type="button" className="button-small button-danger" onClick={() => onDelete(transaction)}>Xóa</button>
+                  </td>
                 </tr>
               ))}
             </tbody>

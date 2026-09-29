@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import "./index.css";
-import TransactionForm from "./features/transactions/TransactionForm";
-import TransactionFilters from "./features/transactions/TransactionFilters";
-import DashboardSummary from "./features/dashboard/DashboardSummary";
-import CategoryManager from "./features/categories/CategoryManager";
-import TransactionTable from "./features/transactions/TransactionTable";
+import DashboardLayout from "./app/DashboardLayout";
+import DashboardPage from "./pages/DashboardPage";
+import TransactionsPage from "./pages/TransactionsPage";
+import CategoriesPage from "./pages/CategoriesPage";
 import { categoryApi, getApiErrorMessage, transactionApi } from "./services/api";
 
 const emptyForm = { amount: "", category_id: "", transaction_date: "", note: "" };
 const emptyFilters = { search: "", type: "", categoryId: "", from: "", to: "" };
+const pageSize = 10;
 
 function App() {
   const [transactions, setTransactions] = useState([]);
@@ -20,6 +21,8 @@ function App() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [filters, setFilters] = useState(emptyFilters);
+  const [dashboardMonth, setDashboardMonth] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -40,12 +43,16 @@ function App() {
     return () => clearTimeout(loadTimer);
   }, [fetchData]);
 
-  const handleChange = (event) => {
-    setFormData((current) => ({ ...current, [event.target.name]: event.target.value }));
-  };
+  const handleChange = (event) => setFormData((current) => ({ ...current, [event.target.name]: event.target.value }));
 
   const handleFilterChange = (event) => {
     setFilters((current) => ({ ...current, [event.target.name]: event.target.value }));
+    setCurrentPage(1);
+  };
+
+  const resetFilters = () => {
+    setFilters(emptyFilters);
+    setCurrentPage(1);
   };
 
   const filteredTransactions = useMemo(() => transactions.filter((transaction) => {
@@ -57,6 +64,10 @@ function App() {
       && (!filters.from || transactionDate >= filters.from)
       && (!filters.to || transactionDate <= filters.to);
   }), [transactions, filters]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / pageSize));
+  const activePage = Math.min(currentPage, totalPages);
+  const paginatedTransactions = filteredTransactions.slice((activePage - 1) * pageSize, activePage * pageSize);
 
   const resetForm = () => {
     setFormData(emptyForm);
@@ -88,12 +99,7 @@ function App() {
 
   const handleEdit = (transaction) => {
     setEditingId(transaction.id);
-    setFormData({
-      amount: String(transaction.amount),
-      category_id: String(transaction.category_id),
-      transaction_date: String(transaction.transaction_date).slice(0, 10),
-      note: transaction.note || "",
-    });
+    setFormData({ amount: String(transaction.amount), category_id: String(transaction.category_id), transaction_date: String(transaction.transaction_date).slice(0, 10), note: transaction.note || "" });
     setNotice("");
     setError("");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -113,22 +119,24 @@ function App() {
     }
   };
 
-  return (
-    <main className="page">
-      <header className="page-header">
-        <p className="eyebrow">FINANCE TRACKER</p>
-        <h1>Sổ thu chi cá nhân</h1>
-        <p className="subtitle">Theo dõi các khoản thu và chi của bạn.</p>
-      </header>
+  const sharedContext = {
+    transactions, categories, formData, saving, editingId, loading, filters,
+    dashboardMonth, setDashboardMonth, handleChange, handleSubmit, resetForm,
+    handleFilterChange, resetFilters, paginatedTransactions, filteredTransactions,
+    handleEdit, handleDelete, activePage, totalPages, setCurrentPage,
+    fetchData, setNotice, setError,
+  };
 
-      <DashboardSummary transactions={transactions} />
-      <TransactionForm categories={categories} formData={formData} saving={saving} editing={editingId !== null} onChange={handleChange} onSubmit={handleSubmit} onCancel={resetForm} />
-      {error && <p className="message error" role="alert">{error}</p>}
-      {notice && <p className="message success" role="status">{notice}</p>}
-      <TransactionFilters categories={categories} filters={filters} onChange={handleFilterChange} onReset={() => setFilters(emptyFilters)} />
-      <TransactionTable transactions={filteredTransactions} loading={loading} onEdit={handleEdit} onDelete={handleDelete} />
-      <CategoryManager categories={categories} onChanged={fetchData} onNotice={setNotice} onError={setError} />
-    </main>
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route element={<DashboardLayout error={error} notice={notice} context={sharedContext} />}>
+          <Route index element={<DashboardPage />} />
+          <Route path="transactions" element={<TransactionsPage />} />
+          <Route path="categories" element={<CategoriesPage />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 }
 

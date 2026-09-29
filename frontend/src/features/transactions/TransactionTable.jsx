@@ -1,11 +1,11 @@
 import { formatDate, formatMoney } from "../../utils/formatters";
 
-function TransactionTable({ transactions, loading, onEdit, onDelete }) {
+function TransactionTable({ transactions, totalTransactions, loading, onEdit, onDelete }) {
   return (
     <section className="panel" aria-labelledby="list-title">
       <div className="section-heading">
         <h2 id="list-title">Lịch sử giao dịch</h2>
-        <span>{transactions.length} giao dịch</span>
+        <span>{totalTransactions} giao dịch</span>
       </div>
       {loading ? (
         <p className="empty-state">Đang tải dữ liệu…</p>

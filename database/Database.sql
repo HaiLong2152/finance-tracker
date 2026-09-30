@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS categories (
 
 CREATE TABLE IF NOT EXISTS transactions (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  amount DECIMAL(15, 2) NOT NULL,
+  amount DECIMAL(15, 0) NOT NULL,
   category_id INT NOT NULL,
   transaction_date DATE NOT NULL,
   note TEXT,

@@ -13,6 +13,13 @@ const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
     .map((origin) => origin.trim())
     .filter(Boolean);
 
+const rateLimit = require('express-rate-limit');
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    message: { success: false, message: 'Too many requests, please try again later.' }
+});
+
 app.use(cors({ origin: allowedOrigins }));
 app.use(express.json({ limit: '100kb' }));
 
@@ -20,6 +27,7 @@ app.get('/', (req, res) => {
     res.send('Finance Tracker API đang hoạt động.');
 });
 
+app.use('/api', apiLimiter);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/transactions', transactionRoutes);
 

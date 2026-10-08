@@ -33,6 +33,16 @@ app.get('/', (req, res) => {
     res.send('Finance Tracker API đang hoạt động.');
 });
 
+app.get('/health', async (req, res) => {
+    try {
+        const pool = require('./config/db.js');
+        await pool.query('SELECT 1');
+        res.status(200).json({ status: 'UP', database: 'connected' });
+    } catch (error) {
+        res.status(503).json({ status: 'DOWN', database: 'disconnected' });
+    }
+});
+
 app.use('/api', apiLimiter);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/transactions', transactionRoutes);
@@ -46,10 +56,27 @@ const server = app.listen(PORT, () => {
     console.log(`Server đang chạy tại http://localhost:${PORT}`);
 });
 
+const gracefulShutdown = () => {
+    console.log('Đang tắt server an toàn...');
+    server.close(async () => {
+        console.log('Đã đóng HTTP server.');
+        try {
+            const pool = require('./config/db.js');
+            await pool.end();
+            console.log('Đã đóng kết nối Database.');
+            process.exit(0);
+        } catch (err) {
+            console.error('Lỗi khi đóng kết nối DB:', err);
+            process.exit(1);
+        }
+    });
+};
+
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGINT', gracefulShutdown);
+
 process.on('unhandledRejection', (err) => {
     console.error('UNHANDLED REJECTION! 💥 Shutting down...');
     console.error(err.name, err.message);
-    server.close(() => {
-        process.exit(1);
-    });
+    gracefulShutdown();
 });

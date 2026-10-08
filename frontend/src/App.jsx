@@ -21,7 +21,7 @@ function AppContent() {
         await Promise.all([fetchCategories(), fetchTransactions()]);
       // eslint-disable-next-line no-unused-vars
       } catch (e) {
-        setError(getApiErrorMessage(e, "Không thể tải dữ liệu."));
+        setError(getApiErrorMessage(e));
       }
     };
     loadData();

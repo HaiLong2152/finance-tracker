@@ -29,7 +29,7 @@ export function TransactionProvider({ children }) {
       const response = await transactionApi.list();
       setTransactions(response.data.data || []);
     } catch (error) {
-      setError(getApiErrorMessage(error, "Không thể tải giao dịch."));
+      setError(getApiErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -83,7 +83,7 @@ export function TransactionProvider({ children }) {
       resetForm();
       await fetchTransactions();
     } catch (error) {
-      setError(getApiErrorMessage(error, "Không thể lưu giao dịch. Vui lòng thử lại."));
+      setError(getApiErrorMessage(error));
     } finally {
       setSaving(false);
     }
@@ -109,7 +109,7 @@ export function TransactionProvider({ children }) {
       setNotice("Đã xóa giao dịch.");
       await fetchTransactions();
     } catch (error) {
-      setError(getApiErrorMessage(error, "Không thể xóa giao dịch. Vui lòng thử lại."));
+      setError(getApiErrorMessage(error));
     }
   };
 

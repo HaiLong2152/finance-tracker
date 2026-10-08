@@ -27,7 +27,7 @@ function CategoryManager({ categories, onChanged, onNotice, onError }) {
       setEditingId(null);
       await onChanged();
     } catch (requestError) {
-      onError(getApiErrorMessage(requestError, "Không thể lưu danh mục."));
+      onError(getApiErrorMessage(requestError));
     } finally {
       setSaving(false);
     }
@@ -56,7 +56,7 @@ function CategoryManager({ categories, onChanged, onNotice, onError }) {
       onNotice("Đã xóa danh mục.");
       await onChanged();
     } catch (requestError) {
-      onError(getApiErrorMessage(requestError, "Không thể xóa danh mục."));
+      onError(getApiErrorMessage(requestError));
     }
   };
 

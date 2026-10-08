@@ -18,5 +18,17 @@ export const transactionApi = {
   remove: (id) => apiClient.delete(`/transactions/${id}`),
 };
 
-export const getApiErrorMessage = (error, fallback) =>
-  error.response?.data?.message || fallback;
+export const getApiErrorMessage = (error, fallback) => {
+  if (error.response?.data?.message) {
+    return error.response.data.message;
+  }
+  if (error.response?.data?.errors) {
+    // Handling array of errors if backend sends validation errors
+    const errors = error.response.data.errors;
+    return Array.isArray(errors) ? errors.join(', ') : Object.values(errors).join(', ');
+  }
+  if (error.message) {
+    return error.message; // e.g. "Network Error"
+  }
+  return fallback || "Đã xảy ra lỗi không xác định.";
+};

@@ -13,7 +13,7 @@ export function CategoryProvider({ children }) {
       const response = await categoryApi.list();
       setCategories(response.data.data || []);
     } catch (error) {
-      setError(getApiErrorMessage(error, "Không thể tải danh mục."));
+      setError(getApiErrorMessage(error));
     }
   }, [setError]);
 

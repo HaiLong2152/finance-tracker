@@ -1,11 +1,5 @@
 const categoryRepository = require('../repositories/categoryRepository');
-
-class AppError extends Error {
-    constructor(message, statusCode) {
-        super(message);
-        this.statusCode = statusCode;
-    }
-}
+const AppError = require('../utils/AppError');
 
 const parseCategory = (body) => {
     const name = typeof body.name === 'string' ? body.name.trim() : '';

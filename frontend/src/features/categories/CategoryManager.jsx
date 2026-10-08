@@ -5,6 +5,7 @@ import { useUI } from "../../contexts/UIContext";
 const emptyForm = { name: "", type: "expense" };
 
 function CategoryManager({ categories, onChanged, onNotice, onError }) {
+  const { confirm } = useUI();
   const [formData, setFormData] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -43,8 +44,6 @@ function CategoryManager({ categories, onChanged, onNotice, onError }) {
     setEditingId(null);
     setFormData(emptyForm);
   };
-
-  const { confirm } = useUI();
 
   const remove = async (category) => {
     const isConfirmed = await confirm("Xác nhận xóa", `Bạn có chắc muốn xóa danh mục ${category.name}?`);

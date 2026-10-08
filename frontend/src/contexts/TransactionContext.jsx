@@ -19,7 +19,7 @@ export function TransactionProvider({ children }) {
   const [dashboardMonth, setDashboardMonth] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
-  const { setError, setNotice } = useUI();
+  const { setError, setNotice, confirm } = useUI();
 
   const fetchTransactions = useCallback(async () => {
     setLoading(true);
@@ -96,8 +96,6 @@ export function TransactionProvider({ children }) {
     setError("");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
-
-  const { confirm } = useUI();
 
   const handleDelete = async (transaction) => {
     const isConfirmed = await confirm("Xác nhận xóa", `Bạn có chắc muốn xóa giao dịch ${transaction.category_name} trị giá ${transaction.amount}?`);

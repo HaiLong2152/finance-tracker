@@ -6,7 +6,7 @@ const findAll = async () => {
 };
 
 const findById = async (id) => {
-    const [rows] = await db.query('SELECT * FROM categories WHERE id = ?', [id]);
+    const [rows] = await db.query('SELECT id FROM categories WHERE id = ?', [id]);
     return rows[0];
 };
 

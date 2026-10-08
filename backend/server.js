@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const categoryRoutes = require('./routes/categoryRoutes');
@@ -13,7 +14,6 @@ const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
     .map((origin) => origin.trim())
     .filter(Boolean);
 
-const rateLimit = require('express-rate-limit');
 const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 100,

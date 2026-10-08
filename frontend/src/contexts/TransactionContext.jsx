@@ -2,6 +2,8 @@ import { createContext, useContext, useState, useCallback, useMemo } from "react
 import { transactionApi } from "../services/api";
 import { useUI } from "./UIContext";
 
+import { formatMoney } from "../utils/formatters";
+
 const TransactionContext = createContext();
 
 const emptyForm = { amount: "", category_id: "", transaction_date: "", note: "" };
@@ -98,7 +100,7 @@ export function TransactionProvider({ children }) {
   };
 
   const handleDelete = async (transaction) => {
-    const isConfirmed = await confirm("Xác nhận xóa", `Bạn có chắc muốn xóa giao dịch ${transaction.category_name} trị giá ${transaction.amount}?`);
+    const isConfirmed = await confirm("Xác nhận xóa", `Bạn có chắc muốn xóa giao dịch ${transaction.category_name} trị giá ${formatMoney(transaction.amount)}?`);
     if (!isConfirmed) return;
     
     setError("");

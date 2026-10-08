@@ -1,7 +1,10 @@
-﻿# Finance Tracker
+# Finance Tracker
 
 Ứng dụng web theo dõi thu chi cá nhân, gồm frontend React/Vite, backend Express và MySQL.
 
+👉 **Tài liệu dự án:**
+- Chi tiết nghiệp vụ và kiến trúc: Xem file `docs/SPEC.md`.
+- Lộ trình thực hiện: Xem file `docs/PLAN.md`.
 ## Yêu cầu
 - Node.js và npm
 - MySQL Server

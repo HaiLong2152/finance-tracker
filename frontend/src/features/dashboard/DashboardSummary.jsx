@@ -15,7 +15,7 @@ function DashboardSummary({ transactions, month, onMonthChange }) {
     !month || String(transaction.transaction_date).slice(0, 7) === month
   )), [transactions, month]);
 
-  const { income, expense, expenseCategories } = monthTransactions.reduce((result, transaction) => {
+  const { income, expense, expenseCategories } = useMemo(() => monthTransactions.reduce((result, transaction) => {
     const amount = Number(transaction.amount);
     if (transaction.type === "income") result.income += amount;
     if (transaction.type === "expense") {
@@ -23,7 +23,7 @@ function DashboardSummary({ transactions, month, onMonthChange }) {
       result.expenseCategories[transaction.category_name] = (result.expenseCategories[transaction.category_name] || 0) + amount;
     }
     return result;
-  }, { income: 0, expense: 0, expenseCategories: {} });
+  }, { income: 0, expense: 0, expenseCategories: {} }), [monthTransactions]);
 
   const categoryAmounts = Object.entries(expenseCategories).sort(([, first], [, second]) => second - first);
   const largestExpense = categoryAmounts[0]?.[1] || 1;

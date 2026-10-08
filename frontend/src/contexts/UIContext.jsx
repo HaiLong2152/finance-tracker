@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, useEffect } from "react";
 import ConfirmDialog from "../components/ConfirmDialog";
 
 const UIContext = createContext();
@@ -6,6 +6,12 @@ const UIContext = createContext();
 export function UIProvider({ children }) {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+
+  useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(""), 3000);
+    return () => clearTimeout(timer);
+  }, [notice]);
   
   const [dialogState, setDialogState] = useState({
     isOpen: false,

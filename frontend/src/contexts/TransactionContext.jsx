@@ -74,11 +74,11 @@ export function TransactionProvider({ children }) {
     try {
       const payload = { ...formData, amount: Number(formData.amount), category_id: Number(formData.category_id) };
       if (editingId) {
-        await transactionApi.update(editingId, payload);
-        setNotice("Đã cập nhật giao dịch.");
+        const response = await transactionApi.update(editingId, payload);
+        setNotice(response.data?.message || "Đã cập nhật giao dịch.");
       } else {
-        await transactionApi.create(payload);
-        setNotice("Đã thêm giao dịch.");
+        const response = await transactionApi.create(payload);
+        setNotice(response.data?.message || "Đã thêm giao dịch.");
       }
       resetForm();
       await fetchTransactions();
@@ -104,9 +104,9 @@ export function TransactionProvider({ children }) {
     setError("");
     setNotice("");
     try {
-      await transactionApi.remove(transaction.id);
+      const response = await transactionApi.remove(transaction.id);
       if (editingId === transaction.id) resetForm();
-      setNotice("Đã xóa giao dịch.");
+      setNotice(response.data?.message || "Đã xóa giao dịch.");
       await fetchTransactions();
     } catch (error) {
       setError(getApiErrorMessage(error));

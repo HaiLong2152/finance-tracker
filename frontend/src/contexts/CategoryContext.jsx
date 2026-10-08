@@ -6,19 +6,23 @@ const CategoryContext = createContext();
 
 export function CategoryProvider({ children }) {
   const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(false);
   const { setError } = useUI();
 
   const fetchCategories = useCallback(async () => {
+    setLoading(true);
     try {
       const response = await categoryApi.list();
       setCategories(response.data.data || []);
     } catch (error) {
       setError(getApiErrorMessage(error));
+    } finally {
+      setLoading(false);
     }
   }, [setError]);
 
   return (
-    <CategoryContext.Provider value={{ categories, fetchCategories }}>
+    <CategoryContext.Provider value={{ categories, loading, fetchCategories }}>
       {children}
     </CategoryContext.Provider>
   );

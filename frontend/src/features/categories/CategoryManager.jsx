@@ -17,11 +17,11 @@ function CategoryManager({ categories, onChanged, onNotice, onError }) {
     onNotice("");
     try {
       if (editingId) {
-        await categoryApi.update(editingId, formData);
-        onNotice("Đã cập nhật danh mục.");
+        const response = await categoryApi.update(editingId, formData);
+        onNotice(response.data?.message || "Đã cập nhật danh mục.");
       } else {
-        await categoryApi.create(formData);
-        onNotice("Đã thêm danh mục.");
+        const response = await categoryApi.create(formData);
+        onNotice(response.data?.message || "Đã thêm danh mục.");
       }
       setFormData(emptyForm);
       setEditingId(null);
@@ -51,9 +51,9 @@ function CategoryManager({ categories, onChanged, onNotice, onError }) {
     onError("");
     onNotice("");
     try {
-      await categoryApi.remove(category.id);
+      const response = await categoryApi.remove(category.id);
       if (editingId === category.id) cancelEdit();
-      onNotice("Đã xóa danh mục.");
+      onNotice(response.data?.message || "Đã xóa danh mục.");
       await onChanged();
     } catch (requestError) {
       onError(getApiErrorMessage(requestError));

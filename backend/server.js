@@ -12,7 +12,7 @@ require('dotenv').config();
 const categoryRoutes = require('./routes/categoryRoutes');
 const transactionRoutes = require('./routes/transactionRoutes');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
-require('./config/db.js');
+const db = require('./config/db.js');
 
 const app = express();
 const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
@@ -34,13 +34,11 @@ app.get('/', (req, res) => {
 });
 
 app.get('/health', async (req, res) => {
-    try {
-        const pool = require('./config/db.js');
-        await pool.query('SELECT 1');
-        res.status(200).json({ status: 'UP', database: 'connected' });
-    } catch (error) {
-        res.status(503).json({ status: 'DOWN', database: 'disconnected' });
+    const isDbConnected = await db.healthCheck();
+    if (isDbConnected) {
+        return res.status(200).json({ status: 'UP', database: 'connected' });
     }
+    return res.status(503).json({ status: 'DOWN', database: 'disconnected' });
 });
 
 app.use('/api', apiLimiter);
@@ -51,25 +49,31 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
+let server;
 
-const server = app.listen(PORT, () => {
-    console.log(`Server đang chạy tại http://localhost:${PORT}`);
-});
+const startServer = async () => {
+    try {
+        await db.testConnection();
+        server = app.listen(PORT, () => {
+            console.log(`Server đang chạy tại http://localhost:${PORT}`);
+        });
+    } catch (error) {
+        console.error('Không thể khởi động server do lỗi kết nối Database.');
+        process.exit(1);
+    }
+};
 
 const gracefulShutdown = () => {
     console.log('Đang tắt server an toàn...');
-    server.close(async () => {
-        console.log('Đã đóng HTTP server.');
-        try {
-            const pool = require('./config/db.js');
-            await pool.end();
-            console.log('Đã đóng kết nối Database.');
+    if (server) {
+        server.close(async () => {
+            console.log('Đã đóng HTTP server.');
+            await db.closePool();
             process.exit(0);
-        } catch (err) {
-            console.error('Lỗi khi đóng kết nối DB:', err);
-            process.exit(1);
-        }
-    });
+        });
+    } else {
+        db.closePool().then(() => process.exit(0));
+    }
 };
 
 process.on('SIGTERM', gracefulShutdown);
@@ -80,3 +84,5 @@ process.on('unhandledRejection', (err) => {
     console.error(err.name, err.message);
     gracefulShutdown();
 });
+
+startServer();

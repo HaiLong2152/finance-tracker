@@ -12,15 +12,43 @@ const pool = mysql.createPool({
     charset: 'utf8mb4'
 });
 
-pool.getConnection()
-    .then((connection) => {
+/**
+ * Kiểm tra kết nối database lúc khởi động
+ */
+pool.testConnection = async () => {
+    try {
+        const connection = await pool.getConnection();
         console.log(`Kết nối MySQL thành công: ${process.env.DB_NAME}`);
         connection.release();
-    })
-    .catch((error) => {
-        console.error('Lỗi kết nối MySQL:', error.message);
-        process.exit(1);
-    });
+        return true;
+    } catch (error) {
+        console.error('Lỗi kết nối MySQL nghiêm trọng:', error.message);
+        throw error;
+    }
+};
+
+/**
+ * Health check kết nối MySQL
+ */
+pool.healthCheck = async () => {
+    try {
+        await pool.query('SELECT 1');
+        return true;
+    } catch (error) {
+        return false;
+    }
+};
+
+/**
+ * Đóng kết nối MySQL an toàn (Graceful shutdown)
+ */
+pool.closePool = async () => {
+    try {
+        await pool.end();
+        console.log('Đã đóng kết nối MySQL pool an toàn.');
+    } catch (error) {
+        console.error('Lỗi khi đóng MySQL pool:', error.message);
+    }
+};
 
 module.exports = pool;
-

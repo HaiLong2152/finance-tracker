@@ -1,4 +1,4 @@
-﻿CREATE DATABASE IF NOT EXISTS finance_tracker
+CREATE DATABASE IF NOT EXISTS finance_tracker
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
 
@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS categories (
 
 CREATE TABLE IF NOT EXISTS transactions (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  amount DECIMAL(15, 0) NOT NULL,
+  amount BIGINT NOT NULL,
   category_id INT NOT NULL,
   transaction_date DATE NOT NULL,
   note TEXT,

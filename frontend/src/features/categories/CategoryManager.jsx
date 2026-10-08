@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { categoryApi, getApiErrorMessage } from "../../services/api";
+import { useUI } from "../../contexts/UIContext";
 
 const emptyForm = { name: "", type: "expense" };
 
@@ -43,8 +44,11 @@ function CategoryManager({ categories, onChanged, onNotice, onError }) {
     setFormData(emptyForm);
   };
 
+  const { confirm } = useUI();
+
   const remove = async (category) => {
-    if (!window.confirm(`Xóa danh mục ${category.name}?`)) return;
+    const isConfirmed = await confirm("Xác nhận xóa", `Bạn có chắc muốn xóa danh mục ${category.name}?`);
+    if (!isConfirmed) return;
     onError("");
     onNotice("");
     try {

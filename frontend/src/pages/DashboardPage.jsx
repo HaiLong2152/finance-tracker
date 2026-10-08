@@ -1,8 +1,8 @@
-import { useOutletContext } from "react-router-dom";
+import { useTransactions } from "../contexts/TransactionContext";
 import DashboardSummary from "../features/dashboard/DashboardSummary";
 
 function DashboardPage() {
-  const { transactions, dashboardMonth, setDashboardMonth } = useOutletContext();
+  const { transactions, dashboardMonth, setDashboardMonth } = useTransactions();
 
   return (
     <>

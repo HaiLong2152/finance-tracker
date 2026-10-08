@@ -18,7 +18,7 @@ const parseTransaction = (body) => {
     const { amount, category_id, transaction_date, note = '' } = body;
     const numericAmount = Number(amount);
     const numericCategoryId = Number(category_id);
-    if (!Number.isFinite(numericAmount) || numericAmount <= 0) throw new AppError('Số tiền phải lớn hơn 0.', 400);
+    if (!Number.isInteger(numericAmount) || numericAmount <= 0) throw new AppError('Số tiền phải là số nguyên lớn hơn 0.', 400);
     if (!Number.isInteger(numericCategoryId) || numericCategoryId <= 0) throw new AppError('Danh mục không hợp lệ.', 400);
     if (!isValidDate(transaction_date)) throw new AppError('Ngày giao dịch không hợp lệ.', 400);
     if (typeof note !== 'string' || note.length > 500) throw new AppError('Ghi chú không được vượt quá 500 ký tự.', 400);

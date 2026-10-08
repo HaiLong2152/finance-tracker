@@ -1,15 +1,17 @@
-import { useOutletContext } from "react-router-dom";
+import { useTransactions } from "../contexts/TransactionContext";
+import { useCategories } from "../contexts/CategoryContext";
 import Pagination from "../components/Pagination";
 import TransactionFilters from "../features/transactions/TransactionFilters";
 import TransactionForm from "../features/transactions/TransactionForm";
 import TransactionTable from "../features/transactions/TransactionTable";
 
 function TransactionsPage() {
+  const { categories } = useCategories();
   const {
-    categories, formData, saving, editingId, handleChange, handleSubmit, resetForm,
+    formData, saving, editingId, handleChange, handleSubmit, resetForm,
     filters, handleFilterChange, resetFilters, paginatedTransactions, filteredTransactions,
     loading, handleEdit, handleDelete, activePage, totalPages, setCurrentPage,
-  } = useOutletContext();
+  } = useTransactions();
 
   return (
     <>

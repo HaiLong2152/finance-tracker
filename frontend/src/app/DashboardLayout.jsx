@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
+import { useUI } from "../contexts/UIContext";
 
 const navigationItems = [
   { to: "/", label: "Tổng quan", end: true },
@@ -6,7 +7,9 @@ const navigationItems = [
   { to: "/categories", label: "Danh mục" },
 ];
 
-function DashboardLayout({ error, notice, context }) {
+function DashboardLayout() {
+  const { error, notice } = useUI();
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -22,7 +25,7 @@ function DashboardLayout({ error, notice, context }) {
       <main className="app-content">
         {error && <p className="message error" role="alert">{error}</p>}
         {notice && <p className="message success" role="status">{notice}</p>}
-        <Outlet context={context} />
+        <Outlet />
       </main>
     </div>
   );

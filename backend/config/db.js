@@ -9,6 +9,7 @@ const pool = mysql.createPool({
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
+    charset: 'utf8mb4'
 });
 
 pool.getConnection()
@@ -18,6 +19,7 @@ pool.getConnection()
     })
     .catch((error) => {
         console.error('Lỗi kết nối MySQL:', error.message);
+        process.exit(1);
     });
 
 module.exports = pool;

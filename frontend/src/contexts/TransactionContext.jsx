@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback, useMemo } from "react";
-import { transactionApi } from "../services/api";
+import { transactionApi, getApiErrorMessage } from "../services/api";
 import { useUI } from "./UIContext";
 
 import { formatMoney } from "../utils/formatters";
@@ -28,9 +28,8 @@ export function TransactionProvider({ children }) {
     try {
       const response = await transactionApi.list();
       setTransactions(response.data.data || []);
-    // eslint-disable-next-line no-unused-vars
     } catch (error) {
-      setError("Không thể tải giao dịch.");
+      setError(getApiErrorMessage(error, "Không thể tải giao dịch."));
     } finally {
       setLoading(false);
     }
@@ -83,9 +82,8 @@ export function TransactionProvider({ children }) {
       }
       resetForm();
       await fetchTransactions();
-    // eslint-disable-next-line no-unused-vars
     } catch (error) {
-      setError("Không thể lưu giao dịch. Vui lòng thử lại.");
+      setError(getApiErrorMessage(error, "Không thể lưu giao dịch. Vui lòng thử lại."));
     } finally {
       setSaving(false);
     }
@@ -110,9 +108,8 @@ export function TransactionProvider({ children }) {
       if (editingId === transaction.id) resetForm();
       setNotice("Đã xóa giao dịch.");
       await fetchTransactions();
-    // eslint-disable-next-line no-unused-vars
     } catch (error) {
-      setError("Không thể xóa giao dịch. Vui lòng thử lại.");
+      setError(getApiErrorMessage(error, "Không thể xóa giao dịch. Vui lòng thử lại."));
     }
   };
 

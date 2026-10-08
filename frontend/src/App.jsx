@@ -8,6 +8,7 @@ import CategoriesPage from "./pages/CategoriesPage";
 import { UIProvider, useUI } from "./contexts/UIContext";
 import { CategoryProvider, useCategories } from "./contexts/CategoryContext";
 import { TransactionProvider, useTransactions } from "./contexts/TransactionContext";
+import { getApiErrorMessage } from "./services/api";
 
 function AppContent() {
   const { fetchCategories } = useCategories();
@@ -20,7 +21,7 @@ function AppContent() {
         await Promise.all([fetchCategories(), fetchTransactions()]);
       // eslint-disable-next-line no-unused-vars
       } catch (e) {
-        setError("Không thể tải dữ liệu.");
+        setError(getApiErrorMessage(e, "Không thể tải dữ liệu."));
       }
     };
     loadData();

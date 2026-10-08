@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback } from "react";
-import { categoryApi } from "../services/api";
+import { categoryApi, getApiErrorMessage } from "../services/api";
 import { useUI } from "./UIContext";
 
 const CategoryContext = createContext();
@@ -12,9 +12,8 @@ export function CategoryProvider({ children }) {
     try {
       const response = await categoryApi.list();
       setCategories(response.data.data || []);
-    // eslint-disable-next-line no-unused-vars
     } catch (error) {
-      setError("Không thể tải danh mục.");
+      setError(getApiErrorMessage(error, "Không thể tải danh mục."));
     }
   }, [setError]);
 

@@ -43,5 +43,13 @@ CREATE TABLE IF NOT EXISTS transactions (
   CONSTRAINT fk_transactions_transfer_account
     FOREIGN KEY (transfer_account_id) REFERENCES accounts(id) ON DELETE RESTRICT,
   CONSTRAINT fk_transactions_category
-    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE RESTRICT
+    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE RESTRICT,
+  CONSTRAINT chk_transactions_amount
+    CHECK (amount > 0),
+  CONSTRAINT chk_transactions_transfer_rules
+    CHECK (
+      (type = 'transfer' AND transfer_account_id IS NOT NULL AND transfer_account_id <> account_id AND category_id IS NULL)
+      OR
+      (type IN ('income', 'expense') AND transfer_account_id IS NULL AND category_id IS NOT NULL)
+    )
 );

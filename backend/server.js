@@ -1,9 +1,3 @@
-process.on('uncaughtException', (err) => {
-    console.error('UNCAUGHT EXCEPTION! 💥 Shutting down...');
-    console.error(err.name, err.message);
-    process.exit(1);
-});
-
 const express = require('express');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
@@ -51,6 +45,47 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 5000;
 let server;
 
+const gracefulShutdown = (exitCode = 0) => {
+    console.log('Đang tắt server an toàn...');
+    
+    // Đảm bảo tiến trình kết thúc nếu việc đóng kết nối bị treo
+    setTimeout(() => {
+        console.error('Quá thời gian chờ tắt server, buộc dừng tiến trình.');
+        process.exit(1);
+    }, 5000).unref();
+
+    if (server) {
+        server.close(async () => {
+            console.log('Đã đóng HTTP server.');
+            if (db && typeof db.closePool === 'function') {
+                await db.closePool();
+            }
+            process.exit(exitCode);
+        });
+    } else {
+        if (db && typeof db.closePool === 'function') {
+            db.closePool().finally(() => process.exit(exitCode));
+        } else {
+            process.exit(exitCode);
+        }
+    }
+};
+
+process.on('uncaughtException', (err) => {
+    console.error('UNCAUGHT EXCEPTION! [LỖI] Shutting down...');
+    console.error(err.name, err.message);
+    gracefulShutdown(1);
+});
+
+process.on('unhandledRejection', (err) => {
+    console.error('UNHANDLED REJECTION! [LỖI] Shutting down...');
+    console.error(err.name, err.message);
+    gracefulShutdown(1);
+});
+
+process.on('SIGTERM', () => gracefulShutdown(0));
+process.on('SIGINT', () => gracefulShutdown(0));
+
 const startServer = async () => {
     try {
         await db.testConnection();
@@ -62,27 +97,5 @@ const startServer = async () => {
         process.exit(1);
     }
 };
-
-const gracefulShutdown = () => {
-    console.log('Đang tắt server an toàn...');
-    if (server) {
-        server.close(async () => {
-            console.log('Đã đóng HTTP server.');
-            await db.closePool();
-            process.exit(0);
-        });
-    } else {
-        db.closePool().then(() => process.exit(0));
-    }
-};
-
-process.on('SIGTERM', gracefulShutdown);
-process.on('SIGINT', gracefulShutdown);
-
-process.on('unhandledRejection', (err) => {
-    console.error('UNHANDLED REJECTION! 💥 Shutting down...');
-    console.error(err.name, err.message);
-    gracefulShutdown();
-});
 
 startServer();

@@ -8,7 +8,7 @@ function TransactionTable({ transactions, totalTransactions, loading, onEdit, on
         <span>{totalTransactions} giao dịch</span>
       </div>
       {loading ? (
-        <p className="empty-state">Đang tải dữ liệu…</p>
+        <p className="empty-state">Đang tải dữ liệu...</p>
       ) : transactions.length === 0 ? (
         <p className="empty-state">Chưa có giao dịch nào. Hãy thêm giao dịch đầu tiên.</p>
       ) : (

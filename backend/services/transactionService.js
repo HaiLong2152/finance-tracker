@@ -9,11 +9,23 @@ const isValidDate = (value) => {
 };
 
 const parseTransaction = (body) => {
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+        throw new AppError('Dữ liệu yêu cầu không hợp lệ.', 400);
+    }
     const { amount, category_id, transaction_date, note = '' } = body;
+    
+    if (typeof amount !== 'number' && typeof amount !== 'string') {
+        throw new AppError('Số tiền không hợp lệ.', 400);
+    }
+
     const numericAmount = Number(amount);
     const numericCategoryId = Number(category_id);
-    if (!Number.isInteger(numericAmount) || numericAmount <= 0) throw new AppError('Số tiền phải là số nguyên lớn hơn 0.', 400);
-    if (!Number.isInteger(numericCategoryId) || numericCategoryId <= 0) throw new AppError('Danh mục không hợp lệ.', 400);
+    if (!Number.isSafeInteger(numericAmount) || numericAmount <= 0) {
+        throw new AppError('Số tiền phải là số nguyên dương hợp lệ và không vượt quá giới hạn an toàn.', 400);
+    }
+    if (!Number.isSafeInteger(numericCategoryId) || numericCategoryId <= 0) {
+        throw new AppError('Danh mục không hợp lệ.', 400);
+    }
     if (!isValidDate(transaction_date)) throw new AppError('Ngày giao dịch không hợp lệ.', 400);
     if (typeof note !== 'string' || note.length > 500) throw new AppError('Ghi chú không được vượt quá 500 ký tự.', 400);
     return { amount: numericAmount, categoryId: numericCategoryId, transactionDate: transaction_date, note: note.trim() || null };
@@ -33,7 +45,7 @@ const createTransaction = async (body) => {
 };
 
 const updateTransaction = async (id, body) => {
-    if (!Number.isInteger(id) || id <= 0) throw new AppError('Mã giao dịch không hợp lệ.', 400);
+    if (!Number.isSafeInteger(id) || id <= 0) throw new AppError('Mã giao dịch không hợp lệ.', 400);
     const parsed = parseTransaction(body);
     
     const transactionExists = await transactionRepository.findById(id);
@@ -47,7 +59,7 @@ const updateTransaction = async (id, body) => {
 };
 
 const deleteTransaction = async (id) => {
-    if (!Number.isInteger(id) || id <= 0) throw new AppError('Mã giao dịch không hợp lệ.', 400);
+    if (!Number.isSafeInteger(id) || id <= 0) throw new AppError('Mã giao dịch không hợp lệ.', 400);
     
     const result = await transactionRepository.remove(id);
     if (result.affectedRows === 0) throw new AppError('Không tìm thấy giao dịch.', 404);

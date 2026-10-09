@@ -27,7 +27,7 @@ function TransactionForm({ categories, formData, saving, editing, onChange, onSu
           <input type="text" name="note" maxLength="500" placeholder="Nội dung giao dịch" value={formData.note} onChange={onChange} />
         </label>
         <div className="form-actions">
-          <button type="submit" disabled={saving || categories.length === 0}>{saving ? "Đang lưu…" : editing ? "Cập nhật" : "Lưu giao dịch"}</button>
+          <button type="submit" disabled={saving || categories.length === 0}>{saving ? "Đang lưu..." : editing ? "Cập nhật" : "Lưu giao dịch"}</button>
           {editing && <button type="button" className="button-secondary" onClick={onCancel} disabled={saving}>Hủy sửa</button>}
         </div>
       </form>

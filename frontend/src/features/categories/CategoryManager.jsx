@@ -69,7 +69,7 @@ function CategoryManager({ categories, onChanged, onNotice, onError }) {
           <option value="expense">Chi</option>
           <option value="income">Thu</option>
         </select>
-        <button type="submit" disabled={saving}>{saving ? "Đang lưu…" : editingId ? "Cập nhật" : "Thêm danh mục"}</button>
+        <button type="submit" disabled={saving}>{saving ? "Đang lưu..." : editingId ? "Cập nhật" : "Thêm danh mục"}</button>
         {editingId && <button type="button" className="button-secondary" onClick={cancelEdit}>Hủy</button>}
       </form>
       <div className="category-list">

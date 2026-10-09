@@ -5,27 +5,18 @@ import DashboardLayout from "./app/DashboardLayout";
 import DashboardPage from "./pages/DashboardPage";
 import TransactionsPage from "./pages/TransactionsPage";
 import CategoriesPage from "./pages/CategoriesPage";
-import { UIProvider, useUI } from "./contexts/UIContext";
+import { UIProvider } from "./contexts/UIContext";
 import { CategoryProvider, useCategories } from "./contexts/CategoryContext";
 import { TransactionProvider, useTransactions } from "./contexts/TransactionContext";
-import { getApiErrorMessage } from "./services/api";
 
 function AppContent() {
   const { fetchCategories } = useCategories();
   const { fetchTransactions } = useTransactions();
-  const { setError } = useUI();
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        await Promise.all([fetchCategories(), fetchTransactions()]);
-      // eslint-disable-next-line no-unused-vars
-      } catch (e) {
-        setError(getApiErrorMessage(e));
-      }
-    };
-    loadData();
-  }, [fetchCategories, fetchTransactions, setError]);
+    fetchCategories();
+    fetchTransactions();
+  }, [fetchCategories, fetchTransactions]);
 
   return (
     <BrowserRouter>

@@ -2,6 +2,9 @@ const categoryRepository = require('../repositories/categoryRepository');
 const AppError = require('../utils/AppError');
 
 const parseCategory = (body) => {
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+        throw new AppError('Dữ liệu yêu cầu không hợp lệ.', 400);
+    }
     const name = typeof body.name === 'string' ? body.name.trim() : '';
     const type = body.type;
     if (name.length < 1 || name.length > 100) throw new AppError('Tên danh mục phải có từ 1 đến 100 ký tự.', 400);
@@ -25,7 +28,7 @@ const createCategory = async (body) => {
 };
 
 const updateCategory = async (id, body) => {
-    if (!Number.isInteger(id) || id <= 0) throw new AppError('Mã danh mục không hợp lệ.', 400);
+    if (!Number.isSafeInteger(id) || id <= 0) throw new AppError('Mã danh mục không hợp lệ.', 400);
     const parsed = parseCategory(body);
     
     const existing = await categoryRepository.findById(id);
@@ -41,7 +44,7 @@ const updateCategory = async (id, body) => {
 };
 
 const deleteCategory = async (id) => {
-    if (!Number.isInteger(id) || id <= 0) throw new AppError('Mã danh mục không hợp lệ.', 400);
+    if (!Number.isSafeInteger(id) || id <= 0) throw new AppError('Mã danh mục không hợp lệ.', 400);
     
     try {
         const result = await categoryRepository.remove(id);

@@ -28,9 +28,11 @@ const updateCategory = async (id, body) => {
     if (!Number.isInteger(id) || id <= 0) throw new AppError('Mã danh mục không hợp lệ.', 400);
     const parsed = parseCategory(body);
     
+    const existing = await categoryRepository.findById(id);
+    if (!existing) throw new AppError('Không tìm thấy danh mục.', 404);
+
     try {
-        const result = await categoryRepository.update(id, parsed);
-        if (result.affectedRows === 0) throw new AppError('Không tìm thấy danh mục.', 404);
+        await categoryRepository.update(id, parsed);
         return true;
     } catch (error) {
         if (error.code === 'ER_DUP_ENTRY') throw new AppError('Danh mục này đã tồn tại.', 409);

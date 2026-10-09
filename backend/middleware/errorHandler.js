@@ -1,3 +1,5 @@
+const AppError = require('../utils/AppError');
+
 const notFoundHandler = (req, res) => {
     res.status(404).json({
         success: false,
@@ -15,10 +17,17 @@ const errorHandler = (error, req, res, next) => {
         });
     }
 
+    if (error instanceof AppError || error.isOperational) {
+        return res.status(error.statusCode || 400).json({
+            success: false,
+            message: error.message,
+        });
+    }
+
     console.error('Unhandled server error:', error);
-    return res.status(error.statusCode || error.status || 500).json({
+    return res.status(500).json({
         success: false,
-        message: error.statusCode || error.status ? error.message : 'Đã xảy ra lỗi máy chủ.',
+        message: 'Đã xảy ra lỗi máy chủ.',
     });
 };
 

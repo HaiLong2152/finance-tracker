@@ -11,6 +11,15 @@ export const categoryApi = {
   remove: (id) => apiClient.delete(`/categories/${id}`),
 };
 
+export const accountApi = {
+  list: (includeArchived = false) => apiClient.get("/accounts", { params: { include_archived: includeArchived } }),
+  getById: (id) => apiClient.get(`/accounts/${id}`),
+  create: (payload) => apiClient.post("/accounts", payload),
+  update: (id, payload) => apiClient.put(`/accounts/${id}`, payload),
+  archive: (id, isArchived = true) => apiClient.patch(`/accounts/${id}/archive`, { is_archived: isArchived }),
+  remove: (id) => apiClient.delete(`/accounts/${id}`),
+};
+
 export const transactionApi = {
   list: () => apiClient.get("/transactions"),
   create: (payload) => apiClient.post("/transactions", payload),

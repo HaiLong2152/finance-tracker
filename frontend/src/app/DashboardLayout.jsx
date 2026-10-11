@@ -4,6 +4,7 @@ import { useUI } from "../contexts/UIContext";
 const navigationItems = [
   { to: "/", label: "Tổng quan", end: true },
   { to: "/transactions", label: "Giao dịch" },
+  { to: "/accounts", label: "Ví / Tài khoản" },
   { to: "/categories", label: "Danh mục" },
 ];
 

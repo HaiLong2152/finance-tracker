@@ -12,3 +12,16 @@ export const formatDate = (value) => {
   const date = new Date(`${String(value).slice(0, 10)}T00:00:00`);
   return dateFormatter.format(date);
 };
+
+export const formatAccountType = (type) => {
+  switch (type) {
+    case "cash":
+      return "Tiền mặt";
+    case "bank":
+      return "Ngân hàng";
+    case "ewallet":
+      return "Ví điện tử";
+    default:
+      return "Khác";
+  }
+};

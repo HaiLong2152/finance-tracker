@@ -1,5 +1,6 @@
 import { useTransactions } from "../contexts/TransactionContext";
 import { useCategories } from "../contexts/CategoryContext";
+import { useAccounts } from "../contexts/AccountContext";
 import Pagination from "../components/Pagination";
 import TransactionFilters from "../features/transactions/TransactionFilters";
 import TransactionForm from "../features/transactions/TransactionForm";
@@ -7,6 +8,7 @@ import TransactionTable from "../features/transactions/TransactionTable";
 
 function TransactionsPage() {
   const { categories } = useCategories();
+  const { accounts, activeAccounts } = useAccounts();
   const {
     formData, saving, editingId, handleChange, handleSubmit, resetForm,
     filters, handleFilterChange, resetFilters, paginatedTransactions, filteredTransactions,
@@ -18,11 +20,32 @@ function TransactionsPage() {
       <header className="page-header">
         <p className="eyebrow">GIAO DỊCH</p>
         <h1>Quản lý giao dịch</h1>
-        <p className="subtitle">Thêm, tìm, sửa hoặc xóa các khoản thu chi.</p>
+        <p className="subtitle">Thêm, tìm, sửa hoặc xóa các khoản thu chi và chuyển tiền.</p>
       </header>
-      <TransactionForm categories={categories} formData={formData} saving={saving} editing={editingId !== null} onChange={handleChange} onSubmit={handleSubmit} onCancel={resetForm} />
-      <TransactionFilters categories={categories} filters={filters} onChange={handleFilterChange} onReset={resetFilters} />
-      <TransactionTable transactions={paginatedTransactions} totalTransactions={filteredTransactions.length} loading={loading} onEdit={handleEdit} onDelete={handleDelete} />
+      <TransactionForm
+        categories={categories}
+        accounts={activeAccounts}
+        formData={formData}
+        saving={saving}
+        editing={editingId !== null}
+        onChange={handleChange}
+        onSubmit={handleSubmit}
+        onCancel={resetForm}
+      />
+      <TransactionFilters
+        categories={categories}
+        accounts={accounts}
+        filters={filters}
+        onChange={handleFilterChange}
+        onReset={resetFilters}
+      />
+      <TransactionTable
+        transactions={paginatedTransactions}
+        totalTransactions={filteredTransactions.length}
+        loading={loading}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+      />
       <Pagination currentPage={activePage} totalPages={totalPages} onChange={setCurrentPage} />
     </>
   );

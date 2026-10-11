@@ -79,6 +79,7 @@ const parseTransaction = async (body) => {
     // 4. Xử lý ví đích và danh mục theo loại giao dịch
     let resolvedTransferAccountId = null;
     let resolvedCategoryId = null;
+    let targetAccount = null;
 
     if (resolvedType === 'transfer') {
         // Chuyển tiền nội bộ: KHÔNG được gắn danh mục thu/chi
@@ -93,7 +94,7 @@ const parseTransaction = async (body) => {
         if (numericTransferAccountId === numericAccountId) {
             throw new AppError('Ví đích phải khác ví nguồn khi chuyển tiền.', 400);
         }
-        const targetAccount = await accountRepository.findById(numericTransferAccountId);
+        targetAccount = await accountRepository.findById(numericTransferAccountId);
         if (!targetAccount) {
             throw new AppError('Ví đích không tồn tại.', 404);
         }
@@ -123,6 +124,32 @@ const parseTransaction = async (body) => {
     // 5. Kiểm tra ngày giao dịch
     if (!isValidDate(transaction_date)) {
         throw new AppError('Ngày giao dịch không hợp lệ.', 400);
+    }
+
+    const formatDateStr = (dateVal) => {
+        if (!dateVal) return '';
+        if (typeof dateVal === 'string') return dateVal.slice(0, 10);
+        if (dateVal instanceof Date) {
+            const y = dateVal.getFullYear();
+            const m = String(dateVal.getMonth() + 1).padStart(2, '0');
+            const d = String(dateVal.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+        return String(dateVal).slice(0, 10);
+    };
+
+    if (sourceAccount.start_date) {
+        const sourceStartDate = formatDateStr(sourceAccount.start_date);
+        if (transaction_date < sourceStartDate) {
+            throw new AppError(`Ngày giao dịch (${transaction_date}) không thể trước ngày bắt đầu theo dõi của ví '${sourceAccount.name}' (${sourceStartDate}). Vui lòng điều chỉnh ngày bắt đầu của ví nếu bạn muốn ghi nhận giao dịch cũ hơn.`, 400);
+        }
+    }
+
+    if (resolvedType === 'transfer' && targetAccount && targetAccount.start_date) {
+        const targetStartDate = formatDateStr(targetAccount.start_date);
+        if (transaction_date < targetStartDate) {
+            throw new AppError(`Ngày giao dịch (${transaction_date}) không thể trước ngày bắt đầu theo dõi của ví đích '${targetAccount.name}' (${targetStartDate}).`, 400);
+        }
     }
 
     // 6. Kiểm tra ghi chú

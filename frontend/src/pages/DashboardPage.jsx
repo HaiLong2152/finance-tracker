@@ -1,8 +1,10 @@
 import { useTransactions } from "../contexts/TransactionContext";
+import { useAccounts } from "../contexts/AccountContext";
 import DashboardSummary from "../features/dashboard/DashboardSummary";
 
 function DashboardPage() {
   const { transactions, dashboardMonth, setDashboardMonth } = useTransactions();
+  const { activeAccounts, totalNetWorth } = useAccounts();
 
   return (
     <>
@@ -11,7 +13,13 @@ function DashboardPage() {
         <h1>Sổ thu chi cá nhân</h1>
         <p className="subtitle">Theo dõi tình hình tài chính của bạn theo từng tháng.</p>
       </header>
-      <DashboardSummary transactions={transactions} month={dashboardMonth} onMonthChange={setDashboardMonth} />
+      <DashboardSummary
+        transactions={transactions}
+        month={dashboardMonth}
+        onMonthChange={setDashboardMonth}
+        accounts={activeAccounts}
+        totalNetWorth={totalNetWorth}
+      />
     </>
   );
 }

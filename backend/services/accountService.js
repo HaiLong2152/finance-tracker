@@ -36,7 +36,8 @@ const parseAccount = (body, existing = null) => {
 
     const numericInitialBalance = parseInteger(initial_balance, 'Số dư ban đầu', 0);
 
-    let resolvedStartDate = new Date().toISOString().slice(0, 10);
+    // Mặc định ngày hiện tại theo múi giờ Việt Nam (UTC+7) để tránh lệch ngày vào rạng sáng 00:00 - 07:00
+    let resolvedStartDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
     if (start_date !== undefined && start_date !== null && start_date !== '') {
         if (!isValidDate(start_date)) {
             throw new AppError('Ngày bắt đầu theo dõi không hợp lệ.', 400);
@@ -56,10 +57,10 @@ const parseAccount = (body, existing = null) => {
     const resolvedSortOrder = parseInteger(sort_order, 'Thứ tự sắp xếp', 0);
 
     let resolvedIsArchived = false;
-    if (is_archived !== undefined && is_archived !== null) {
-        resolvedIsArchived = parseBoolean(is_archived, false);
+    if (is_archived !== undefined) {
+        resolvedIsArchived = parseBoolean(is_archived, false, 'is_archived');
     } else if (existing) {
-        resolvedIsArchived = parseBoolean(existing.is_archived, false);
+        resolvedIsArchived = parseBoolean(existing.is_archived, false, 'is_archived');
     }
 
     return {

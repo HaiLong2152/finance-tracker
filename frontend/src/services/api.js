@@ -36,6 +36,9 @@ export const getApiErrorMessage = (error, fallback) => {
     const errors = error.response.data.errors;
     return Array.isArray(errors) ? errors.join(', ') : Object.values(errors).join(', ');
   }
+  if (error.response?.status === 502 || error.response?.status === 503) {
+    return "Máy chủ đang khởi động lại hoặc tạm thời gián đoạn kết nối. Vui lòng bấm thử lại.";
+  }
   if (error.message) {
     return error.message; // e.g. "Network Error"
   }

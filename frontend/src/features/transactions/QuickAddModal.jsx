@@ -4,7 +4,7 @@ import { useCategories } from "../../contexts/CategoryContext";
 import { useTransactions } from "../../contexts/TransactionContext";
 import { useUI } from "../../contexts/UIContext";
 import { transactionApi, getApiErrorMessage } from "../../services/api";
-import { formatMoney, formatAccountType } from "../../utils/formatters";
+import { formatMoney, formatAccountType, getLocalDateString } from "../../utils/formatters";
 
 export default function QuickAddModal({ onClose }) {
   const { activeAccounts, fetchAccounts } = useAccounts();
@@ -29,9 +29,7 @@ export default function QuickAddModal({ onClose }) {
   });
 
   const [note, setNote] = useState("");
-  const [transactionDate, setTransactionDate] = useState(() =>
-    new Date().toISOString().slice(0, 10)
-  );
+  const [transactionDate, setTransactionDate] = useState(() => getLocalDateString());
   const [saving, setSaving] = useState(false);
 
   // Khi đổi type (chi/thu), cập nhật categoryId phù hợp

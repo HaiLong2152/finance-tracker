@@ -44,20 +44,47 @@ async function migrate() {
   if (unassigned.count > 0) {
     console.log(`Tìm thấy ${unassigned.count} giao dịch cũ chưa có account_id. Bắt đầu gán ví...`);
 
-    // Tìm ví đầu tiên sẵn có trong DB
-    const [existingAccounts] = await db.query('SELECT id FROM accounts ORDER BY id ASC LIMIT 1');
-    let fallbackAccountId;
+    // Tìm ngày giao dịch sớm nhất trong số các giao dịch chưa có ví
+    const [[earliestRow]] = await db.query(
+      'SELECT MIN(transaction_date) as earliest_date FROM transactions WHERE account_id IS NULL'
+    );
+    const getVietnamDateStr = (dateObj = new Date()) => {
+      return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(dateObj);
+    };
+    const earliestTxDate = earliestRow?.earliest_date
+      ? getVietnamDateStr(new Date(earliestRow.earliest_date))
+      : getVietnamDateStr();
 
-    if (existingAccounts.length > 0) {
-      fallbackAccountId = existingAccounts[0].id;
+    // Ưu tiên tìm ví tiền mặt (cash) đang hoạt động, nếu không có thì lấy ví đang hoạt động đầu tiên
+    const [cashAccounts] = await db.query(
+      "SELECT id, start_date FROM accounts WHERE type = 'cash' AND is_archived = 0 ORDER BY sort_order ASC, id ASC LIMIT 1"
+    );
+    let targetAccount = cashAccounts[0];
+
+    if (!targetAccount) {
+      const [activeAccounts] = await db.query(
+        "SELECT id, start_date FROM accounts WHERE is_archived = 0 ORDER BY sort_order ASC, id ASC LIMIT 1"
+      );
+      targetAccount = activeAccounts[0];
+    }
+
+    let fallbackAccountId;
+    if (targetAccount) {
+      fallbackAccountId = targetAccount.id;
+      // Đảm bảo start_date của ví bao quát được giao dịch cũ nhất (start_date <= earliestTxDate)
+      await db.query(
+        'UPDATE accounts SET start_date = LEAST(start_date, ?) WHERE id = ?',
+        [earliestTxDate, fallbackAccountId]
+      );
+      console.log(`✓ Đã chọn ví ID ${fallbackAccountId} và điều chỉnh start_date <= ${earliestTxDate}.`);
     } else {
-      // Chỉ tạo 1 ví mặc định với số dư ban đầu là 0 (để không làm lệch sổ sách/tính toán thực tế)
+      // Nếu chưa có ví nào trong CSDL, tạo ví 'Tiền mặt' với start_date bằng đúng ngày giao dịch sớm nhất
       const [newAcc] = await db.query(`
-        INSERT INTO accounts (name, type, initial_balance, identifier_hint)
-        VALUES ('Tiền mặt mặc định', 'cash', 0, 'Ví tạo tự động cho giao dịch cũ chưa gán ví')
-      `);
+        INSERT INTO accounts (name, type, initial_balance, start_date, identifier_hint)
+        VALUES ('Tiền mặt', 'cash', 0, ?, 'Ví tiền mặt tạo tự động cho giao dịch lịch sử')
+      `, [earliestTxDate]);
       fallbackAccountId = newAcc.insertId;
-      console.log(`✓ Đã tạo ví mặc định với số dư 0 VND (ID: ${fallbackAccountId}).`);
+      console.log(`✓ Đã tạo ví 'Tiền mặt' với start_date = ${earliestTxDate} (ID: ${fallbackAccountId}).`);
     }
 
     // Gán các giao dịch cũ vào fallbackAccountId
@@ -72,7 +99,7 @@ async function migrate() {
         END
       WHERE t.account_id IS NULL;
     `, [fallbackAccountId]);
-    console.log(`✓ Đã liên kết các giao dịch cũ vào ví ID ${fallbackAccountId}.`);
+    console.log(`✓ Đã liên kết ${unassigned.count} giao dịch cũ vào ví ID ${fallbackAccountId}.`);
   }
 
   // 4. Cho phép category_id NULL (dành cho transfer) và đặt account_id NOT NULL

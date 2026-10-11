@@ -3,7 +3,7 @@ const { parseBoolean } = require('../utils/parsers');
 
 const getAllAccounts = async (req, res, next) => {
     try {
-        const includeArchived = parseBoolean(req.query.include_archived, false);
+        const includeArchived = parseBoolean(req.query.include_archived, false, 'include_archived');
         const data = await accountService.getAllAccounts(includeArchived);
         res.json({ success: true, data });
     } catch (error) {
@@ -41,8 +41,8 @@ const updateAccount = async (req, res, next) => {
 const archiveAccount = async (req, res, next) => {
     try {
         const hasBody = req.body && typeof req.body === 'object' && !Array.isArray(req.body);
-        const rawValue = hasBody && req.body.is_archived !== undefined ? req.body.is_archived : true;
-        const isArchived = parseBoolean(rawValue, true);
+        const rawValue = hasBody && req.body.is_archived !== undefined ? req.body.is_archived : undefined;
+        const isArchived = parseBoolean(rawValue, true, 'is_archived');
 
         await accountService.archiveAccount(Number(req.params.id), isArchived);
         res.json({ 

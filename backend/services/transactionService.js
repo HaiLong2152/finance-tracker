@@ -152,9 +152,17 @@ const parseTransaction = async (body) => {
         }
     }
 
-    // 6. Kiểm tra ghi chú
-    if (typeof note !== 'string' || note.length > 500) {
-        throw new AppError('Ghi chú không được vượt quá 500 ký tự.', 400);
+    // 6. Kiểm tra ghi chú (tùy chọn)
+    let resolvedNote = null;
+    if (note !== undefined && note !== null && note !== '') {
+        if (typeof note !== 'string') {
+            throw new AppError('Ghi chú không hợp lệ.', 400);
+        }
+        const trimmedNote = note.trim();
+        if (trimmedNote.length > 500) {
+            throw new AppError('Ghi chú không được vượt quá 500 ký tự.', 400);
+        }
+        resolvedNote = trimmedNote || null;
     }
 
     return { 
@@ -164,7 +172,7 @@ const parseTransaction = async (body) => {
         transferAccountId: resolvedTransferAccountId,
         categoryId: resolvedCategoryId, 
         transactionDate: transaction_date, 
-        note: note.trim() || null 
+        note: resolvedNote 
     };
 };
 

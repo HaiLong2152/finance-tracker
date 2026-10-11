@@ -1,84 +1,203 @@
-import { useState } from "react";
+import { useState, useMemo, useRef } from "react";
 import { categoryApi, getApiErrorMessage } from "../../services/api";
 import { useUI } from "../../contexts/UIContext";
 
-const emptyForm = { name: "", type: "expense" };
-
-function CategoryManager({ categories, onChanged, onNotice, onError }) {
+function CategoryManager({ categories = [], onChanged, onNotice, onError }) {
   const { confirm } = useUI();
-  const [formData, setFormData] = useState(emptyForm);
+  const [currentType, setCurrentType] = useState("expense"); // "expense" | "income"
+  const [categoryName, setCategoryName] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [saving, setSaving] = useState(false);
+  const inputRef = useRef(null);
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+  const expenseCount = useMemo(
+    () => categories.filter((c) => c.type === "expense").length,
+    [categories]
+  );
+  const incomeCount = useMemo(
+    () => categories.filter((c) => c.type === "income").length,
+    [categories]
+  );
+
+  const currentList = useMemo(
+    () => categories.filter((c) => c.type === currentType),
+    [categories, currentType]
+  );
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const trimmed = categoryName.trim();
+    if (!trimmed) return;
+
     setSaving(true);
     onError("");
     onNotice("");
+
     try {
       if (editingId) {
-        const response = await categoryApi.update(editingId, formData);
-        onNotice(response.data?.message || "Đã cập nhật danh mục.");
+        const res = await categoryApi.update(editingId, {
+          name: trimmed,
+          type: currentType,
+        });
+        onNotice(res.data?.message || "Đã cập nhật danh mục.");
       } else {
-        const response = await categoryApi.create(formData);
-        onNotice(response.data?.message || "Đã thêm danh mục.");
+        const res = await categoryApi.create({
+          name: trimmed,
+          type: currentType,
+        });
+        onNotice(res.data?.message || `Đã thêm danh mục ${currentType === "expense" ? "chi tiêu" : "thu nhập"}.`);
       }
-      setFormData(emptyForm);
+      setCategoryName("");
       setEditingId(null);
       await onChanged();
-    } catch (requestError) {
-      onError(getApiErrorMessage(requestError));
+    } catch (err) {
+      onError(getApiErrorMessage(err, "Không thể lưu danh mục."));
     } finally {
       setSaving(false);
     }
   };
 
-  const startEdit = (category) => {
-    setEditingId(category.id);
-    setFormData({ name: category.name, type: category.type });
+  const startEdit = (cat) => {
+    setEditingId(cat.id);
+    setCategoryName(cat.name);
+    setCurrentType(cat.type);
     onError("");
     onNotice("");
+    inputRef.current?.focus();
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const cancelEdit = () => {
     setEditingId(null);
-    setFormData(emptyForm);
+    setCategoryName("");
   };
 
-  const remove = async (category) => {
-    const isConfirmed = await confirm("Xác nhận xóa", `Bạn có chắc muốn xóa danh mục ${category.name}?`);
+  const handleRemove = async (cat) => {
+    const isConfirmed = await confirm(
+      "Xác nhận xóa danh mục",
+      `Bạn có chắc muốn xóa danh mục "${cat.name}"?`
+    );
     if (!isConfirmed) return;
+
     onError("");
     onNotice("");
     try {
-      const response = await categoryApi.remove(category.id);
-      if (editingId === category.id) cancelEdit();
-      onNotice(response.data?.message || "Đã xóa danh mục.");
+      const res = await categoryApi.remove(cat.id);
+      if (editingId === cat.id) cancelEdit();
+      onNotice(res.data?.message || "Đã xóa danh mục.");
       await onChanged();
-    } catch (requestError) {
-      onError(getApiErrorMessage(requestError));
+    } catch (err) {
+      onError(getApiErrorMessage(err, "Không thể xóa danh mục."));
     }
   };
 
+  const isExpense = currentType === "expense";
+
   return (
     <section className="panel" aria-labelledby="category-title">
-      <div className="section-heading"><h2 id="category-title">Quản lý danh mục</h2><span>{categories.length} danh mục</span></div>
-      <form className="category-form" onSubmit={handleSubmit}>
-        <input aria-label="Tên danh mục" type="text" maxLength="100" placeholder="Tên danh mục" value={formData.name} onChange={(event) => setFormData({ ...formData, name: event.target.value })} required />
-        <select aria-label="Loại danh mục" value={formData.type} onChange={(event) => setFormData({ ...formData, type: event.target.value })}>
-          <option value="expense">Chi</option>
-          <option value="income">Thu</option>
-        </select>
-        <button type="submit" disabled={saving}>{saving ? "Đang lưu..." : editingId ? "Cập nhật" : "Thêm danh mục"}</button>
-        {editingId && <button type="button" className="button-secondary" onClick={cancelEdit}>Hủy</button>}
+      <div className="section-heading">
+        <div>
+          <h2 id="category-title">Quản lý danh mục</h2>
+          <span>Phân loại các khoản chi tiêu và thu nhập</span>
+        </div>
+      </div>
+
+      {/* Nút bấm chuyển đổi duy nhất: Bấm Thu chỉ hiện Thu, bấm Chi chỉ hiện Chi */}
+      <div className="category-switch-bar">
+        <button
+          type="button"
+          className={`category-switch-btn ${isExpense ? "active expense" : ""}`}
+          onClick={() => {
+            setCurrentType("expense");
+            cancelEdit();
+          }}
+        >
+          Chi tiêu ({expenseCount})
+        </button>
+        <button
+          type="button"
+          className={`category-switch-btn ${!isExpense ? "active income" : ""}`}
+          onClick={() => {
+            setCurrentType("income");
+            cancelEdit();
+          }}
+        >
+          Thu nhập ({incomeCount})
+        </button>
+      </div>
+
+      {/* Form nhập đơn giản, rõ ràng theo đúng loại đang chọn */}
+      <form className="simple-category-form" onSubmit={handleSubmit}>
+        <input
+          ref={inputRef}
+          type="text"
+          maxLength="100"
+          placeholder={
+            editingId
+              ? "Tên danh mục mới..."
+              : isExpense
+              ? "Nhập tên danh mục Chi tiêu (ví dụ: Ăn uống, Tiền nhà...)"
+              : "Nhập tên danh mục Thu nhập (ví dụ: Lương, Thưởng...)"
+          }
+          value={categoryName}
+          onChange={(e) => setCategoryName(e.target.value)}
+          required
+        />
+        <button
+          type="submit"
+          disabled={saving}
+          className={isExpense ? "button-expense-submit" : ""}
+        >
+          {saving
+            ? "Đang lưu..."
+            : editingId
+            ? "Cập nhật"
+            : isExpense
+            ? "+ Thêm chi tiêu"
+            : "+ Thêm thu nhập"}
+        </button>
+        {editingId && (
+          <button
+            type="button"
+            className="button-secondary"
+            onClick={cancelEdit}
+          >
+            Hủy
+          </button>
+        )}
       </form>
-      <div className="category-list">
-        {categories.map((category) => (
-          <div className="category-item" key={category.id}>
-            <span><strong>{category.name}</strong> <small>{category.type === "income" ? "Thu" : "Chi"}</small></span>
-            <span className="actions"><button type="button" className="button-small button-secondary" onClick={() => startEdit(category)}>Sửa</button><button type="button" className="button-small button-danger" onClick={() => remove(category)}>Xóa</button></span>
+
+      {/* Chỉ hiển thị duy nhất danh sách của loại đang chọn */}
+      <div className="category-items-container">
+        {currentList.length === 0 ? (
+          <p className="empty-hint">
+            Chưa có danh mục {isExpense ? "chi tiêu" : "thu nhập"} nào. Hãy thêm danh mục đầu tiên ở trên!
+          </p>
+        ) : (
+          <div className="category-items-stack">
+            {currentList.map((cat) => (
+              <div className="category-item" key={cat.id}>
+                <span className="category-item-name">{cat.name}</span>
+                <span className="actions">
+                  <button
+                    type="button"
+                    className="button-small button-secondary"
+                    onClick={() => startEdit(cat)}
+                  >
+                    Sửa
+                  </button>
+                  <button
+                    type="button"
+                    className="button-small button-danger"
+                    onClick={() => handleRemove(cat)}
+                  >
+                    Xóa
+                  </button>
+                </span>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
     </section>
   );

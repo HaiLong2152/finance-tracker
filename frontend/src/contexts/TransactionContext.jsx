@@ -2,11 +2,11 @@ import { createContext, useContext, useState, useCallback, useMemo } from "react
 import { transactionApi, getApiErrorMessage } from "../services/api";
 import { useUI } from "./UIContext";
 import { useAccounts } from "./AccountContext";
-import { formatMoney } from "../utils/formatters";
+import { formatMoney, getLocalDateString } from "../utils/formatters";
 
 const TransactionContext = createContext();
 
-const defaultToday = () => new Date().toISOString().slice(0, 10);
+const defaultToday = () => getLocalDateString();
 
 const emptyForm = {
   amount: "",

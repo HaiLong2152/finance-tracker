@@ -1,18 +1,24 @@
 const AppError = require('./AppError');
 
 /**
- * Chuyển đổi an toàn các giá trị boolean (xử lý đúng chuỗi 'false', '0', false, 0...)
+ * Chuyển đổi và kiểm tra nghiêm ngặt các giá trị boolean:
+ * - Khi value === undefined: trả về defaultValue (nếu có), hoặc ném lỗi nếu bắt buộc.
+ * - Hợp lệ: true/false, 1/0, chuỗi 'true'/'false'/'1'/'0'.
+ * - Các giá trị không hợp lệ (chuỗi lạ, null, số khác 0/1, object, array...): Ném lỗi AppError 400.
  */
-const parseBoolean = (value, defaultValue = false) => {
-    if (value === undefined || value === null) return defaultValue;
+const parseBoolean = (value, defaultValue = undefined, fieldName = 'Trường dữ liệu') => {
+    if (value === undefined) {
+        if (defaultValue !== undefined) return defaultValue;
+        throw new AppError(`${fieldName} là bắt buộc.`, 400);
+    }
     if (typeof value === 'boolean') return value;
-    if (typeof value === 'number') return value !== 0;
+    if (value === 1 || value === 0) return value === 1;
     if (typeof value === 'string') {
         const lower = value.trim().toLowerCase();
         if (lower === 'true' || lower === '1') return true;
         if (lower === 'false' || lower === '0') return false;
     }
-    return defaultValue;
+    throw new AppError(`${fieldName} phải là giá trị boolean hợp lệ (true/false, 1/0).`, 400);
 };
 
 /**

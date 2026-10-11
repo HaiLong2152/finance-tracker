@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { accountApi, getApiErrorMessage } from "../../services/api";
 import { useUI } from "../../contexts/UIContext";
-import { formatMoney, formatDate, formatAccountType } from "../../utils/formatters";
+import { formatMoney, formatDate, formatAccountType, getLocalDateString } from "../../utils/formatters";
 
-const defaultStartDate = () => new Date().toISOString().slice(0, 10);
+const defaultStartDate = () => getLocalDateString();
 
 const emptyForm = {
   name: "",

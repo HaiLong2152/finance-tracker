@@ -1,4 +1,16 @@
+import { useId } from "react";
+
 export default function BrandLogo({ size = 34, className = "" }) {
+  const uid = useId().replace(/:/g, "_");
+  const bgGradId = `bgGrad_${uid}`;
+  const walletGradId = `walletGrad_${uid}`;
+  const walletFlapId = `walletFlap_${uid}`;
+  const moneyGrad1Id = `moneyGrad1_${uid}`;
+  const moneyGrad2Id = `moneyGrad2_${uid}`;
+  const piggyGradId = `piggyGrad_${uid}`;
+  const goldGradId = `goldGrad_${uid}`;
+  const softShadowId = `softShadow_${uid}`;
+
   return (
     <svg
       width={size}
@@ -10,58 +22,58 @@ export default function BrandLogo({ size = 34, className = "" }) {
       aria-hidden="true"
     >
       <defs>
-        {/* Nền gradient chuyển sắc Cam sang Xanh dương theo đúng ảnh mẫu */}
-        <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        {/* Nền gradient chuyển sắc Cam sang Xanh dương */}
+        <linearGradient id={bgGradId} x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#fb923c" />
           <stop offset="50%" stopColor="#f59e0b" />
           <stop offset="100%" stopColor="#38bdf8" />
         </linearGradient>
 
         {/* Gradient màu ví da nâu cam */}
-        <linearGradient id="walletGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <linearGradient id={walletGradId} x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#c2410c" />
           <stop offset="100%" stopColor="#9a3412" />
         </linearGradient>
 
-        <linearGradient id="walletFlap" x1="0%" y1="0%" x2="0%" y2="100%">
+        <linearGradient id={walletFlapId} x1="0%" y1="0%" x2="0%" y2="100%">
           <stop offset="0%" stopColor="#ea580c" />
           <stop offset="100%" stopColor="#c2410c" />
         </linearGradient>
 
         {/* Gradient tiền giấy xanh */}
-        <linearGradient id="moneyGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+        <linearGradient id={moneyGrad1Id} x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#34d399" />
           <stop offset="100%" stopColor="#059669" />
         </linearGradient>
-        <linearGradient id="moneyGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+        <linearGradient id={moneyGrad2Id} x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#6ee7b7" />
           <stop offset="100%" stopColor="#10b981" />
         </linearGradient>
 
         {/* Gradient heo đất hồng */}
-        <linearGradient id="piggyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <linearGradient id={piggyGradId} x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#f472b6" />
           <stop offset="100%" stopColor="#e11d48" />
         </linearGradient>
 
         {/* Gradient đồng xu vàng */}
-        <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <linearGradient id={goldGradId} x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#fef08a" />
           <stop offset="60%" stopColor="#f59e0b" />
           <stop offset="100%" stopColor="#d97706" />
         </linearGradient>
 
         {/* Đổ bóng nhẹ các lớp */}
-        <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
+        <filter id={softShadowId} x="-10%" y="-10%" width="120%" height="120%">
           <feDropShadow dx="0" dy="3" stdDeviation="3" floodOpacity="0.25" />
         </filter>
       </defs>
 
       {/* 1. NỀN ICON BO GÓC SQUIRCLE */}
-      <rect width="120" height="120" rx="30" fill="url(#bgGradient)" />
+      <rect width="120" height="120" rx="30" fill={`url(#${bgGradId})`} />
 
       {/* 2. BIỂU ĐỒ TĂNG TRƯỞNG & MŨI TÊN (Phía sau bên trái) */}
-      <g opacity="0.95" filter="url(#softShadow)">
+      <g opacity="0.95" filter={`url(#${softShadowId})`}>
         {/* Cột 1 */}
         <rect x="18" y="70" width="10" height="18" rx="3" fill="#60a5fa" />
         {/* Cột 2 */}
@@ -82,7 +94,7 @@ export default function BrandLogo({ size = 34, className = "" }) {
       </g>
 
       {/* 3. TỜ TIỀN GIẤY XANH NHÔ RA TỪ VÍ */}
-      <g filter="url(#softShadow)">
+      <g filter={`url(#${softShadowId})`}>
         {/* Tờ tiền sau (nghiêng nhẹ) */}
         <rect
           x="30"
@@ -90,7 +102,7 @@ export default function BrandLogo({ size = 34, className = "" }) {
           width="32"
           height="22"
           rx="3"
-          fill="url(#moneyGrad1)"
+          fill={`url(#${moneyGrad1Id})`}
           transform="rotate(-10 46 45)"
         />
         <circle cx="45" cy="44" r="4" fill="#a7f3d0" opacity="0.7" />
@@ -102,16 +114,16 @@ export default function BrandLogo({ size = 34, className = "" }) {
           width="34"
           height="24"
           rx="3"
-          fill="url(#moneyGrad2)"
+          fill={`url(#${moneyGrad2Id})`}
           transform="rotate(6 55 50)"
         />
         <circle cx="56" cy="49" r="4.5" fill="#ecfdf5" opacity="0.8" />
       </g>
 
       {/* 4. CHÚ HEO ĐẤT TIẾT KIỆM (Phía phải) */}
-      <g filter="url(#softShadow)">
+      <g filter={`url(#${softShadowId})`}>
         {/* Thân heo tròn */}
-        <ellipse cx="84" cy="68" rx="19" ry="17" fill="url(#piggyGrad)" />
+        <ellipse cx="84" cy="68" rx="19" ry="17" fill={`url(#${piggyGradId})`} />
         {/* Tai heo */}
         <polygon points="76,53 82,46 84,54" fill="#fb7185" />
         {/* Mõm heo */}
@@ -127,13 +139,13 @@ export default function BrandLogo({ size = 34, className = "" }) {
       </g>
 
       {/* 5. CHIẾC VÍ DA NÂU CAM Ở TRUNG TÂM */}
-      <g filter="url(#softShadow)">
+      <g filter={`url(#${softShadowId})`}>
         {/* Thân ví da */}
-        <rect x="22" y="52" width="46" height="40" rx="8" fill="url(#walletGrad)" />
+        <rect x="22" y="52" width="46" height="40" rx="8" fill={`url(#${walletGradId})`} />
         {/* Nắp viền gập của ví */}
         <path
           d="M 22 60 C 22 55.6 25.6 52 30 52 L 60 52 C 64.4 52 68 55.6 68 60 L 68 66 C 68 70.4 64.4 74 60 74 L 30 74 C 25.6 74 22 70.4 22 66 Z"
-          fill="url(#walletFlap)"
+          fill={`url(#${walletFlapId})`}
         />
         {/* Đai khóa ví */}
         <rect x="52" y="66" width="18" height="12" rx="4" fill="#ea580c" />
@@ -142,16 +154,16 @@ export default function BrandLogo({ size = 34, className = "" }) {
       </g>
 
       {/* 6. CHỒNG ĐỒNG XU VÀNG Ở GÓC DƯỚI */}
-      <g filter="url(#softShadow)">
+      <g filter={`url(#${softShadowId})`}>
         {/* Xu 1 (đáy) */}
         <ellipse cx="80" cy="95" rx="14" ry="6" fill="#b45309" />
-        <ellipse cx="80" cy="92" rx="14" ry="6" fill="url(#goldGrad)" />
+        <ellipse cx="80" cy="92" rx="14" ry="6" fill={`url(#${goldGradId})`} />
         {/* Xu 2 (giữa) */}
         <ellipse cx="80" cy="88" rx="14" ry="6" fill="#b45309" />
-        <ellipse cx="80" cy="85" rx="14" ry="6" fill="url(#goldGrad)" />
+        <ellipse cx="80" cy="85" rx="14" ry="6" fill={`url(#${goldGradId})`} />
         {/* Xu 3 (trên đỉnh) */}
         <ellipse cx="80" cy="81" rx="14" ry="6" fill="#b45309" />
-        <ellipse cx="80" cy="78" rx="14" ry="6" fill="url(#goldGrad)" />
+        <ellipse cx="80" cy="78" rx="14" ry="6" fill={`url(#${goldGradId})`} />
         {/* Ký hiệu đồng xu trên đỉnh */}
         <text
           x="80"
@@ -167,7 +179,7 @@ export default function BrandLogo({ size = 34, className = "" }) {
 
         {/* Xu rơi lẻ phía trước */}
         <ellipse cx="98" cy="93" rx="10" ry="5" fill="#b45309" />
-        <ellipse cx="98" cy="90" rx="10" ry="5" fill="url(#goldGrad)" />
+        <ellipse cx="98" cy="90" rx="10" ry="5" fill={`url(#${goldGradId})`} />
         <text
           x="98"
           y="93"

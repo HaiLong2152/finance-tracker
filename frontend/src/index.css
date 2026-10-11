@@ -154,13 +154,14 @@ th { color: #718078; font-size: 12px; font-weight: 700; }
     position: sticky;
     top: 0;
     z-index: 40;
-    padding: 12px 16px;
+    padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px;
     background: #173a2a;
     color: #fff;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
 
   .mobile-quick-btn {
+    width: auto !important;
     min-height: 34px;
     padding: 6px 14px;
     border-radius: 8px;
@@ -170,6 +171,8 @@ th { color: #718078; font-size: 12px; font-weight: 700; }
     font-weight: 700;
     border: 0;
     cursor: pointer;
+    flex-shrink: 0;
+    white-space: nowrap;
   }
 
   .mobile-bottom-nav {
@@ -180,13 +183,13 @@ th { color: #718078; font-size: 12px; font-weight: 700; }
     bottom: 0;
     left: 0;
     right: 0;
-    height: 64px;
+    height: calc(64px + env(safe-area-inset-bottom, 0px));
     background: #ffffff;
     border-top: 1px solid #e5e7eb;
     z-index: 50;
-    padding: 0 4px;
+    padding: 0 4px env(safe-area-inset-bottom, 0px);
     box-shadow: 0 -3px 12px rgba(0, 0, 0, 0.06);
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-sizing: border-box;
   }
 
   .bottom-nav-item {
@@ -214,7 +217,7 @@ th { color: #718078; font-size: 12px; font-weight: 700; }
   }
 
   .bottom-nav-fab {
-    width: 52px;
+    width: 52px !important;
     height: 52px;
     border-radius: 50%;
     background: #25815e;
@@ -227,6 +230,7 @@ th { color: #718078; font-size: 12px; font-weight: 700; }
     cursor: pointer;
     margin: -20px auto 0;
     transition: transform 0.15s ease, background 0.15s ease;
+    flex-shrink: 0;
   }
 
   .bottom-nav-fab:active {
@@ -236,7 +240,7 @@ th { color: #718078; font-size: 12px; font-weight: 700; }
 
   .app-content {
     width: min(100% - 24px, 1100px);
-    padding: 16px 0 88px;
+    padding: 16px 0 calc(88px + env(safe-area-inset-bottom, 0px));
   }
 
   .panel {
@@ -261,7 +265,7 @@ th { color: #718078; font-size: 12px; font-weight: 700; }
     flex-direction: column;
   }
 
-  button {
+  button:not(.mobile-quick-btn):not(.bottom-nav-fab):not(.category-switch-btn):not(.button-small) {
     width: 100%;
   }
 

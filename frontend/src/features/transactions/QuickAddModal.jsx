@@ -90,13 +90,21 @@ export default function QuickAddModal({ onClose }) {
   // Hỗ trợ bấm phím vật lý trên bàn phím máy tính
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.target.tagName === "INPUT") return;
+      // Escape luôn đóng modal nhất quán kể cả khi đang focus vào bất kỳ ô nào
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+        return;
+      }
+
+      // Bỏ qua các phím số/backspace khi đang tương tác với trường nhập liệu (input, select, textarea)
+      const isInputFocused = e.target.matches?.("input, select, textarea, [contenteditable='true']");
+      if (isInputFocused) return;
+
       if (e.key >= "0" && e.key <= "9") {
         handleNumpad(e.key);
       } else if (e.key === "Backspace") {
         handleNumpad("BACK");
-      } else if (e.key === "Escape") {
-        onClose();
       }
     };
 

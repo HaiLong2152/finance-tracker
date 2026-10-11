@@ -1,0 +1,46 @@
+{
+  "name": "Finance Tracker - Sổ thu chi cá nhân",
+  "short_name": "Finance Tracker",
+  "description": "Quản lý thu chi cá nhân, ví tiền và tài khoản ngân hàng một cách nhanh chóng và bảo mật.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#25815e",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Thêm giao dịch",
+      "short_name": "Nhập nhanh",
+      "description": "Mở nhập nhanh giao dịch mới",
+      "url": "/transactions",
+      "icons": [
+        {
+          "src": "/icon.svg",
+          "sizes": "any"
+        }
+      ]
+    },
+    {
+      "name": "Quản lý ví",
+      "short_name": "Ví tiền",
+      "description": "Xem số dư các ví",
+      "url": "/accounts",
+      "icons": [
+        {
+          "src": "/icon.svg",
+          "sizes": "any"
+        }
+      ]
+    }
+  ]
+}
+

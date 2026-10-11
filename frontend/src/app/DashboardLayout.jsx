@@ -1,33 +1,166 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useUI } from "../contexts/UIContext";
+import QuickAddModal from "../features/transactions/QuickAddModal";
 
-const navigationItems = [
-  { to: "/", label: "Tổng quan", end: true },
-  { to: "/transactions", label: "Giao dịch" },
-  { to: "/accounts", label: "Ví / Tài khoản" },
-  { to: "/categories", label: "Danh mục" },
+const navItems = [
+  {
+    to: "/",
+    label: "Tổng quan",
+    end: true,
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+        <polyline points="9 22 9 12 15 12 15 22" />
+      </svg>
+    ),
+  },
+  {
+    to: "/transactions",
+    label: "Giao dịch",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+        <polyline points="14 2 14 8 20 8" />
+        <line x1="16" y1="13" x2="8" y2="13" />
+        <line x1="16" y1="17" x2="8" y2="17" />
+      </svg>
+    ),
+  },
+  {
+    to: "/accounts",
+    label: "Ví tiền",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="4" width="20" height="16" rx="2" />
+        <line x1="2" y1="10" x2="22" y2="10" />
+        <circle cx="17" cy="15" r="1.5" />
+      </svg>
+    ),
+  },
+  {
+    to: "/categories",
+    label: "Danh mục",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+        <line x1="7" y1="7" x2="7.01" y2="7" />
+      </svg>
+    ),
+  },
 ];
 
 function DashboardLayout() {
-  const { error, notice } = useUI();
+  const { error, notice, isQuickAddOpen, openQuickAdd, closeQuickAdd } = useUI();
 
   return (
     <div className="app-shell">
+      {/* Sidebar trên Desktop */}
       <aside className="sidebar">
-        <div className="brand"><span className="brand-mark">₫</span><span>Finance Tracker</span></div>
+        <div className="brand">
+          <span className="brand-mark">₫</span>
+          <span>Finance Tracker</span>
+        </div>
+
         <nav className="navigation" aria-label="Điều hướng chính">
-          {navigationItems.map((item) => (
-            <NavLink key={item.to} to={item.to} end={item.end} className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}>
-              {item.label}
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
+            >
+              {item.icon}
+              <span>{item.label}</span>
             </NavLink>
           ))}
         </nav>
+
+        {/* Nút Nhập nhanh nổi bật trên Sidebar desktop */}
+        <div className="sidebar-quick-add">
+          <button
+            type="button"
+            className="sidebar-quick-add-btn"
+            onClick={openQuickAdd}
+          >
+            <span>+</span> Nhập nhanh
+          </button>
+        </div>
       </aside>
+
+      {/* Header gọn trên Mobile */}
+      <header className="mobile-header">
+        <div className="brand">
+          <span className="brand-mark">₫</span>
+          <span>Finance Tracker</span>
+        </div>
+        <button
+          type="button"
+          className="mobile-quick-btn"
+          onClick={openQuickAdd}
+          aria-label="Thêm nhanh"
+        >
+          + Nhập
+        </button>
+      </header>
+
+      {/* Nội dung chính */}
       <main className="app-content">
         {error && <p className="message error" role="alert">{error}</p>}
         {notice && <p className="message success" role="status">{notice}</p>}
         <Outlet />
       </main>
+
+      {/* Thanh điều hướng dưới đáy (Bottom Navigation Bar) cho Mobile */}
+      <nav className="mobile-bottom-nav" aria-label="Điều hướng dưới">
+        <NavLink
+          to="/"
+          end
+          className={({ isActive }) => `bottom-nav-item ${isActive ? "active" : ""}`}
+        >
+          {navItems[0].icon}
+          <span>Tổng quan</span>
+        </NavLink>
+
+        <NavLink
+          to="/transactions"
+          className={({ isActive }) => `bottom-nav-item ${isActive ? "active" : ""}`}
+        >
+          {navItems[1].icon}
+          <span>Giao dịch</span>
+        </NavLink>
+
+        {/* Nút Nhập nhanh lớn ở giữa */}
+        <button
+          type="button"
+          className="bottom-nav-fab"
+          onClick={openQuickAdd}
+          aria-label="Nhập nhanh giao dịch"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+        </button>
+
+        <NavLink
+          to="/accounts"
+          className={({ isActive }) => `bottom-nav-item ${isActive ? "active" : ""}`}
+        >
+          {navItems[2].icon}
+          <span>Ví tiền</span>
+        </NavLink>
+
+        <NavLink
+          to="/categories"
+          className={({ isActive }) => `bottom-nav-item ${isActive ? "active" : ""}`}
+        >
+          {navItems[3].icon}
+          <span>Danh mục</span>
+        </NavLink>
+      </nav>
+
+      {/* Bottom Sheet / Modal Nhập Nhanh */}
+      {isQuickAddOpen && <QuickAddModal onClose={closeQuickAdd} />}
     </div>
   );
 }

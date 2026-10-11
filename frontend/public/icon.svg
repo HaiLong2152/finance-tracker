@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2ba879"/>
+      <stop offset="100%" stop-color="#186345"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Background rounded rect -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)"/>
+
+  <!-- Inner stylized wallet card outline -->
+  <rect x="76" y="116" width="360" height="280" rx="40" fill="none" stroke="#ffffff" stroke-width="20" opacity="0.35"/>
+
+  <!-- Currency symbol ₫ -->
+  <g filter="url(#shadow)" fill="#ffffff">
+    <text x="256" y="325" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="240" font-weight="900" text-anchor="middle">₫</text>
+  </g>
+</svg>

@@ -39,8 +39,23 @@ export function UIProvider({ children }) {
     });
   }, []);
 
+  const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
+  const openQuickAdd = useCallback(() => setIsQuickAddOpen(true), []);
+  const closeQuickAdd = useCallback(() => setIsQuickAddOpen(false), []);
+
   return (
-    <UIContext.Provider value={{ error, setError, notice, setNotice, confirm }}>
+    <UIContext.Provider
+      value={{
+        error,
+        setError,
+        notice,
+        setNotice,
+        confirm,
+        isQuickAddOpen,
+        openQuickAdd,
+        closeQuickAdd,
+      }}
+    >
       {children}
       <ConfirmDialog {...dialogState} />
     </UIContext.Provider>

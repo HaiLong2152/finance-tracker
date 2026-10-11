@@ -12,6 +12,7 @@ const emptyForm = {
   start_date: defaultStartDate(),
   identifier_hint: "",
   sort_order: "0",
+  is_archived: false,
 };
 
 export default function AccountManager({
@@ -40,6 +41,7 @@ export default function AccountManager({
       start_date: acc.start_date ? String(acc.start_date).slice(0, 10) : defaultStartDate(),
       identifier_hint: acc.identifier_hint || "",
       sort_order: String(acc.sort_order ?? 0),
+      is_archived: Boolean(acc.is_archived),
     });
     setError("");
     setNotice("");
@@ -65,6 +67,7 @@ export default function AccountManager({
       start_date: formData.start_date,
       identifier_hint: formData.identifier_hint.trim() || null,
       sort_order: Number(formData.sort_order),
+      is_archived: Boolean(formData.is_archived),
     };
 
     try {
@@ -131,7 +134,11 @@ export default function AccountManager({
   return (
     <>
       <section className="panel" aria-labelledby="account-form-title">
-        <h2 id="account-form-title">{editingId ? "Sửa thông tin ví" : "Thêm ví / tài khoản mới"}</h2>
+        <h2 id="account-form-title">
+          {editingId
+            ? `Sửa thông tin ví${formData.is_archived ? " (Đang lưu trữ)" : ""}`
+            : "Thêm ví / tài khoản mới"}
+        </h2>
         <form className="account-form" onSubmit={handleSubmit}>
           <div className="form-grid">
             <label>

@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useUI } from "../contexts/UIContext";
 import QuickAddModal from "../features/transactions/QuickAddModal";
+import BrandLogo from "../components/BrandLogo";
 
 const navItems = [
   {
@@ -57,7 +58,7 @@ function DashboardLayout() {
       {/* Sidebar trên Desktop */}
       <aside className="sidebar">
         <div className="brand">
-          <span className="brand-mark">₫</span>
+          <BrandLogo size={36} />
           <span>Finance Tracker</span>
         </div>
 
@@ -90,7 +91,7 @@ function DashboardLayout() {
       {/* Header gọn trên Mobile */}
       <header className="mobile-header">
         <div className="brand">
-          <span className="brand-mark">₫</span>
+          <BrandLogo size={32} />
           <span>Finance Tracker</span>
         </div>
         <button

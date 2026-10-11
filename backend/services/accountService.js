@@ -10,7 +10,7 @@ const isValidDate = (value) => {
     return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
 };
 
-const parseAccount = (body) => {
+const parseAccount = (body, existing = null) => {
     if (!body || typeof body !== 'object' || Array.isArray(body)) {
         throw new AppError('Dữ liệu yêu cầu không hợp lệ.', 400);
     }
@@ -21,7 +21,7 @@ const parseAccount = (body) => {
         initial_balance,
         start_date,
         identifier_hint,
-        is_archived = false,
+        is_archived,
         sort_order
     } = body;
 
@@ -55,13 +55,20 @@ const parseAccount = (body) => {
 
     const resolvedSortOrder = parseInteger(sort_order, 'Thứ tự sắp xếp', 0);
 
+    let resolvedIsArchived = false;
+    if (is_archived !== undefined && is_archived !== null) {
+        resolvedIsArchived = parseBoolean(is_archived, false);
+    } else if (existing) {
+        resolvedIsArchived = parseBoolean(existing.is_archived, false);
+    }
+
     return {
         name: trimmedName,
         type,
         initialBalance: numericInitialBalance,
         startDate: resolvedStartDate,
         identifierHint: resolvedHint,
-        isArchived: parseBoolean(is_archived, false),
+        isArchived: resolvedIsArchived,
         sortOrder: resolvedSortOrder
     };
 };
@@ -103,7 +110,7 @@ const updateAccount = async (id, body) => {
         throw new AppError('Không tìm thấy ví.', 404);
     }
 
-    const parsed = parseAccount(body);
+    const parsed = parseAccount(body, existing);
     try {
         await accountRepository.update(id, parsed);
         return true;

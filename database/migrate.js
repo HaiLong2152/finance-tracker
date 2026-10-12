@@ -162,6 +162,23 @@ async function migrate() {
     console.log('✓ Đã thêm CHECK constraint chk_transactions_transfer_rules.');
   }
 
+  // 7. Tạo bảng budgets (Ngân sách theo danh mục & tháng)
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS budgets (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      category_id INT NOT NULL,
+      month VARCHAR(7) NOT NULL,
+      limit_amount BIGINT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_budgets_category_month (category_id, month),
+      KEY idx_budgets_month (month),
+      FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE,
+      CONSTRAINT chk_budgets_amount CHECK (limit_amount > 0)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `);
+  console.log('✓ Bảng budgets đã sẵn sàng.');
+
   console.log('=== Migration hoàn tất thành công 100%! ===');
   process.exit(0);
 }

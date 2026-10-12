@@ -13,6 +13,7 @@ function DashboardSummary({
   onMonthChange,
   accounts = [],
   totalNetWorth = 0,
+  budgetsData = null,
 }) {
   const availableMonths = useMemo(() => [
     ...new Set(
@@ -114,6 +115,57 @@ function DashboardSummary({
                   <strong className={`account-chip-balance ${bal < 0 ? "negative" : "positive"}`}>
                     {formatMoney(bal)}
                   </strong>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* Widget Ngân sách tháng */}
+      <section className="panel budget-summary-panel" aria-labelledby="budget-summary-title">
+        <div className="section-heading">
+          <div>
+            <h2 id="budget-summary-title">Tiến độ ngân sách</h2>
+            {budgetsData && budgetsData.items.length > 0 ? (
+              <span>
+                Đã dùng {formatMoney(budgetsData.total_spent)} / {formatMoney(budgetsData.total_budget)} ({budgetsData.overall_percentage}%)
+              </span>
+            ) : (
+              <span>Hạn mức chi tiêu tháng</span>
+            )}
+          </div>
+          <Link to="/budgets" className="button-small button-secondary">
+            Quản lý ngân sách ➔
+          </Link>
+        </div>
+
+        {!budgetsData || budgetsData.items.length === 0 ? (
+          <p className="empty-state">
+            Chưa thiết lập ngân sách cho tháng này. <Link to="/budgets">Thiết lập ngay</Link>
+          </p>
+        ) : (
+          <div className="dashboard-budget-list">
+            {budgetsData.items.slice(0, 5).map((b) => {
+              const clampedPercent = Math.min(b.percentage, 100);
+              return (
+                <div key={b.id} className="breakdown-row">
+                  <div>
+                    <span className="dashboard-budget-name">
+                      {b.category_name}
+                      {b.status === "exceeded" && <span className="budget-tag tag-exceeded">Vượt ({b.percentage}%)</span>}
+                      {b.status === "warning" && <span className="budget-tag tag-warning">Sắp chạm ({b.percentage}%)</span>}
+                    </span>
+                    <strong>
+                      {formatMoney(b.spent_amount)} / <small className="text-muted">{formatMoney(b.limit_amount)}</small>
+                    </strong>
+                  </div>
+                  <div className="bar-track">
+                    <div
+                      className={`bar-fill fill-${b.status}`}
+                      style={{ width: `${clampedPercent}%` }}
+                    />
+                  </div>
                 </div>
               );
             })}

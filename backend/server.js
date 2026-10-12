@@ -7,6 +7,7 @@ require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 const categoryRoutes = require('./routes/categoryRoutes');
 const transactionRoutes = require('./routes/transactionRoutes');
 const accountRoutes = require('./routes/accountRoutes');
+const budgetRoutes = require('./routes/budgetRoutes');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 const db = require('./config/db.js');
 
@@ -41,6 +42,7 @@ app.use('/api', apiLimiter);
 app.use('/api/accounts', accountRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/transactions', transactionRoutes);
+app.use('/api/budgets', budgetRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

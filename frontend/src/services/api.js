@@ -27,6 +27,15 @@ export const transactionApi = {
   remove: (id) => apiClient.delete(`/transactions/${id}`),
 };
 
+export const budgetApi = {
+  list: (month) => apiClient.get("/budgets", { params: { month } }),
+  getById: (id) => apiClient.get(`/budgets/${id}`),
+  save: (payload) => apiClient.post("/budgets", payload),
+  update: (id, payload) => apiClient.put(`/budgets/${id}`, payload),
+  remove: (id) => apiClient.delete(`/budgets/${id}`),
+  copyPrevious: (payload) => apiClient.post("/budgets/copy-previous", payload),
+};
+
 export const getApiErrorMessage = (error, fallback) => {
   if (error.response?.data?.message) {
     return error.response.data.message;

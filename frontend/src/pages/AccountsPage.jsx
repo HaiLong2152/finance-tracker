@@ -1,3 +1,4 @@
+import { NavLink } from "react-router-dom";
 import { useAccounts } from "../contexts/AccountContext";
 import AccountManager from "../features/accounts/AccountManager";
 import { formatMoney } from "../utils/formatters";
@@ -29,6 +30,21 @@ function AccountsPage() {
           </div>
         </div>
       </header>
+
+      <div className="section-tab-nav" role="tablist" aria-label="Chuyển đổi ví và danh mục">
+        <NavLink
+          to="/accounts"
+          className={({ isActive }) => `section-tab-btn ${isActive ? "active" : ""}`}
+        >
+          Ví tiền ({accounts.length})
+        </NavLink>
+        <NavLink
+          to="/categories"
+          className={({ isActive }) => `section-tab-btn ${isActive ? "active" : ""}`}
+        >
+          Danh mục
+        </NavLink>
+      </div>
 
       <AccountManager
         accounts={accounts}

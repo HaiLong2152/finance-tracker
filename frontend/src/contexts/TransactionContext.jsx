@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useCallback, useMemo } from "react
 import { transactionApi, getApiErrorMessage } from "../services/api";
 import { useUI } from "./UIContext";
 import { useAccounts } from "./AccountContext";
+import { useBudgets } from "./BudgetContext";
 import { formatMoney, getLocalDateString } from "../utils/formatters";
 
 const TransactionContext = createContext();
@@ -42,6 +43,7 @@ export function TransactionProvider({ children }) {
 
   const { setError, setNotice, confirm } = useUI();
   const { fetchAccounts } = useAccounts();
+  const { fetchBudgets } = useBudgets();
 
   const fetchTransactions = useCallback(async () => {
     setLoading(true);
@@ -159,7 +161,7 @@ export function TransactionProvider({ children }) {
       }
 
       resetForm();
-      await Promise.all([fetchTransactions(), fetchAccounts()]);
+      await Promise.all([fetchTransactions(), fetchAccounts(), fetchBudgets()]);
     } catch (error) {
       setError(getApiErrorMessage(error, "Không thể lưu giao dịch."));
     } finally {
@@ -201,7 +203,7 @@ export function TransactionProvider({ children }) {
       const response = await transactionApi.remove(transaction.id);
       if (editingId === transaction.id) resetForm();
       setNotice(response.data?.message || "Đã xóa giao dịch.");
-      await Promise.all([fetchTransactions(), fetchAccounts()]);
+      await Promise.all([fetchTransactions(), fetchAccounts(), fetchBudgets()]);
     } catch (error) {
       setError(getApiErrorMessage(error, "Không thể xóa giao dịch."));
     }

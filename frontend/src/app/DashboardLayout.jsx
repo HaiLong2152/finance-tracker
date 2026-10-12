@@ -28,6 +28,16 @@ const navItems = [
     ),
   },
   {
+    to: "/budgets",
+    label: "Ngân sách",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21.21 15.89A10 10 0 1 1 8 2.83" />
+        <path d="M22 12A10 10 0 0 0 12 2v10z" />
+      </svg>
+    ),
+  },
+  {
     to: "/accounts",
     label: "Ví tiền",
     icon: (
@@ -144,19 +154,19 @@ function DashboardLayout() {
         </button>
 
         <NavLink
-          to="/accounts"
+          to="/budgets"
           className={({ isActive }) => `bottom-nav-item ${isActive ? "active" : ""}`}
         >
           {navItems[2].icon}
-          <span>Ví tiền</span>
+          <span>Ngân sách</span>
         </NavLink>
 
         <NavLink
-          to="/categories"
+          to="/accounts"
           className={({ isActive }) => `bottom-nav-item ${isActive ? "active" : ""}`}
         >
           {navItems[3].icon}
-          <span>Danh mục</span>
+          <span>Ví tiền</span>
         </NavLink>
       </nav>
 

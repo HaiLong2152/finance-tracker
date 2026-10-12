@@ -1,10 +1,19 @@
+import { useEffect } from "react";
 import { useTransactions } from "../contexts/TransactionContext";
 import { useAccounts } from "../contexts/AccountContext";
+import { useBudgets } from "../contexts/BudgetContext";
 import DashboardSummary from "../features/dashboard/DashboardSummary";
 
 function DashboardPage() {
   const { transactions, dashboardMonth, setDashboardMonth } = useTransactions();
   const { activeAccounts, totalNetWorth } = useAccounts();
+  const { budgetsData, fetchBudgets } = useBudgets();
+
+  useEffect(() => {
+    if (dashboardMonth) {
+      fetchBudgets(dashboardMonth);
+    }
+  }, [dashboardMonth, fetchBudgets]);
 
   return (
     <>
@@ -19,6 +28,7 @@ function DashboardPage() {
         onMonthChange={setDashboardMonth}
         accounts={activeAccounts}
         totalNetWorth={totalNetWorth}
+        budgetsData={budgetsData}
       />
     </>
   );

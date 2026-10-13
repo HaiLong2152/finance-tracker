@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, useRef, useEffect } from "react";
 import { budgetApi, getApiErrorMessage } from "../services/api";
 import { useUI } from "./UIContext";
 import { getLocalDateString } from "../utils/formatters";
@@ -24,19 +24,31 @@ export function BudgetProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const { setError, setNotice, confirm } = useUI();
 
-  const fetchBudgets = useCallback(async (month = selectedMonth) => {
+  // Dùng ref để giữ giá trị selectedMonth mới nhất mà không làm thay đổi identity của fetchBudgets
+  const selectedMonthRef = useRef(selectedMonth);
+  useEffect(() => {
+    selectedMonthRef.current = selectedMonth;
+  }, [selectedMonth]);
+
+  const fetchBudgets = useCallback(async (month) => {
+    const targetMonth = month || selectedMonthRef.current;
     setLoading(true);
     try {
-      const response = await budgetApi.list(month);
+      const response = await budgetApi.list(targetMonth);
       setBudgetsData(response.data.data || initialBudgetData);
     } catch (error) {
       setError(getApiErrorMessage(error, "Không thể tải thông tin ngân sách."));
     } finally {
       setLoading(false);
     }
-  }, [selectedMonth, setError]);
+  }, [setError]);
 
-  const saveBudget = async ({ category_id, month = selectedMonth, limit_amount }) => {
+  // Tải ngân sách tháng ban đầu khi BudgetProvider được mount
+  useEffect(() => {
+    fetchBudgets(selectedMonthRef.current);
+  }, [fetchBudgets]);
+
+  const saveBudget = async ({ category_id, month = selectedMonthRef.current, limit_amount }) => {
     try {
       setError("");
       const response = await budgetApi.save({
@@ -53,7 +65,7 @@ export function BudgetProvider({ children }) {
     }
   };
 
-  const updateBudget = async (id, limit_amount, month = selectedMonth) => {
+  const updateBudget = async (id, limit_amount, month = selectedMonthRef.current) => {
     try {
       setError("");
       const response = await budgetApi.update(id, {
@@ -68,7 +80,7 @@ export function BudgetProvider({ children }) {
     }
   };
 
-  const deleteBudget = async (id, categoryName, month = selectedMonth) => {
+  const deleteBudget = async (id, categoryName, month = selectedMonthRef.current) => {
     const isConfirmed = await confirm(
       "Xóa hạn mức",
       `Bạn có chắc muốn xóa hạn mức ngân sách của danh mục "${categoryName}" trong tháng ${month}?`
@@ -87,7 +99,7 @@ export function BudgetProvider({ children }) {
     }
   };
 
-  const copyFromPrevious = async (targetMonth = selectedMonth) => {
+  const copyFromPrevious = async (targetMonth = selectedMonthRef.current) => {
     const isConfirmed = await confirm(
       "Sao chép ngân sách",
       `Bạn có muốn sao chép toàn bộ hạn mức từ tháng trước sang tháng ${targetMonth}? Các danh mục đã có hạn mức sẽ được cập nhật.`
@@ -136,4 +148,3 @@ export function BudgetProvider({ children }) {
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const useBudgets = () => useContext(BudgetContext);
-

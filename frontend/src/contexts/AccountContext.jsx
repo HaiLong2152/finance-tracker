@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useMemo } from "react";
+import { createContext, useContext, useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { accountApi, getApiErrorMessage } from "../services/api";
 import { useUI } from "./UIContext";
 
@@ -10,17 +10,23 @@ export function AccountProvider({ children }) {
   const [showArchived, setShowArchived] = useState(false);
   const { setError } = useUI();
 
-  const fetchAccounts = useCallback(async (includeArchived = showArchived) => {
+  const showArchivedRef = useRef(showArchived);
+  useEffect(() => {
+    showArchivedRef.current = showArchived;
+  }, [showArchived]);
+
+  const fetchAccounts = useCallback(async (includeArchived) => {
+    const shouldInclude = typeof includeArchived === "boolean" ? includeArchived : showArchivedRef.current;
     setLoading(true);
     try {
-      const response = await accountApi.list(includeArchived);
+      const response = await accountApi.list(shouldInclude);
       setAccounts(response.data.data || []);
     } catch (error) {
       setError(getApiErrorMessage(error, "Không thể tải danh sách ví."));
     } finally {
       setLoading(false);
     }
-  }, [showArchived, setError]);
+  }, [setError]);
 
   const activeAccounts = useMemo(() => {
     return accounts.filter((a) => !a.is_archived);

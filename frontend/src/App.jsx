@@ -11,20 +11,18 @@ import { UIProvider } from "./contexts/UIContext";
 import { CategoryProvider, useCategories } from "./contexts/CategoryContext";
 import { AccountProvider, useAccounts } from "./contexts/AccountContext";
 import { TransactionProvider, useTransactions } from "./contexts/TransactionContext";
-import { BudgetProvider, useBudgets } from "./contexts/BudgetContext";
+import { BudgetProvider } from "./contexts/BudgetContext";
 
 function AppContent() {
   const { fetchCategories } = useCategories();
   const { fetchAccounts } = useAccounts();
   const { fetchTransactions } = useTransactions();
-  const { fetchBudgets } = useBudgets();
 
   useEffect(() => {
     fetchCategories();
     fetchAccounts();
     fetchTransactions();
-    fetchBudgets();
-  }, [fetchCategories, fetchAccounts, fetchTransactions, fetchBudgets]);
+  }, [fetchCategories, fetchAccounts, fetchTransactions]);
 
   return (
     <BrowserRouter>

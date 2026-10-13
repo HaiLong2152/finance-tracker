@@ -3,7 +3,8 @@ import { formatDate, formatMoney } from "../../utils/formatters";
 import BulkCategoryModal from "./BulkCategoryModal";
 
 function TransactionTable({
-  transactions,
+  transactions = [],
+  allTransactions,
   totalTransactions,
   loading,
   categories = [],
@@ -15,10 +16,23 @@ function TransactionTable({
   const [selectedIds, setSelectedIds] = useState([]);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 
+  // Danh sách giao dịch nguồn để tra cứu: ưu tiên allTransactions (toàn bộ kết quả lọc trên tất cả các trang)
+  const transactionSource = allTransactions ?? transactions;
+
+  // Tập hợp ID thực tế tồn tại trong nguồn dữ liệu hiện tại
+  const validIdSet = useMemo(() => {
+    return new Set(transactionSource.map((t) => t.id));
+  }, [transactionSource]);
+
+  // Các ID được chọn thực sự hợp lệ (tự động loại bỏ các ID không còn tồn tại khi thay đổi bộ lọc)
+  const effectiveSelectedIds = useMemo(() => {
+    return selectedIds.filter((id) => validIdSet.has(id));
+  }, [selectedIds, validIdSet]);
+
   const selectedTransactions = useMemo(() => {
-    const idSet = new Set(selectedIds);
-    return transactions.filter((t) => idSet.has(t.id));
-  }, [transactions, selectedIds]);
+    const idSet = new Set(effectiveSelectedIds);
+    return transactionSource.filter((t) => idSet.has(t.id));
+  }, [transactionSource, effectiveSelectedIds]);
 
   const totalSelectedAmount = useMemo(() => {
     return selectedTransactions.reduce((sum, t) => sum + Number(t.amount || 0), 0);
@@ -36,20 +50,36 @@ function TransactionTable({
     return selectedTransactions.some((t) => t.type === "expense");
   }, [selectedTransactions]);
 
-  const isAllSelected = transactions.length > 0 && selectedIds.length === transactions.length;
+  // Trạng thái checkbox ở header: áp dụng cho các giao dịch trong trang hiện tại
+  const isCurrentPageAllSelected = useMemo(() => {
+    if (transactions.length === 0) return false;
+    const idSet = new Set(effectiveSelectedIds);
+    return transactions.every((t) => idSet.has(t.id));
+  }, [transactions, effectiveSelectedIds]);
+
+  const isCurrentPageSomeSelected = useMemo(() => {
+    if (transactions.length === 0) return false;
+    const idSet = new Set(effectiveSelectedIds);
+    return transactions.some((t) => idSet.has(t.id)) && !isCurrentPageAllSelected;
+  }, [transactions, effectiveSelectedIds, isCurrentPageAllSelected]);
 
   const toggleSelectAll = () => {
-    if (isAllSelected) {
-      setSelectedIds([]);
+    const pageIds = transactions.map((t) => t.id);
+    if (isCurrentPageAllSelected) {
+      // Bỏ chọn toàn bộ trang hiện tại nhưng giữ các trang khác
+      const pageIdSet = new Set(pageIds);
+      setSelectedIds(effectiveSelectedIds.filter((id) => !pageIdSet.has(id)));
     } else {
-      setSelectedIds(transactions.map((t) => t.id));
+      // Chọn tất cả trang hiện tại và hợp nhất với các ID đã chọn ở trang khác
+      setSelectedIds(Array.from(new Set([...effectiveSelectedIds, ...pageIds])));
     }
   };
 
   const toggleSelect = (id) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
+    setSelectedIds((prev) => {
+      const base = prev.filter((item) => validIdSet.has(item));
+      return base.includes(id) ? base.filter((item) => item !== id) : [...base, id];
+    });
   };
 
   const handleClearSelection = () => {
@@ -57,7 +87,7 @@ function TransactionTable({
   };
 
   const handleBulkChangeCategoryConfirm = async (categoryId) => {
-    const success = await onBulkChangeCategory(selectedIds, categoryId);
+    const success = await onBulkChangeCategory(effectiveSelectedIds, categoryId);
     if (success) {
       setSelectedIds([]);
       setIsCategoryModalOpen(false);
@@ -66,7 +96,7 @@ function TransactionTable({
   };
 
   const handleBulkDeleteClick = async () => {
-    const success = await onBulkDelete(selectedIds, totalSelectedAmount);
+    const success = await onBulkDelete(effectiveSelectedIds, totalSelectedAmount);
     if (success) {
       setSelectedIds([]);
     }
@@ -93,12 +123,12 @@ function TransactionTable({
       </div>
 
       {/* Thanh tác vụ hàng loạt nổi bật khi có chọn */}
-      {selectedIds.length > 0 && (
+      {effectiveSelectedIds.length > 0 && (
         <div className="bulk-action-bar" role="toolbar" aria-label="Thao tác hàng loạt">
           <div className="bulk-info">
-            <span className="bulk-badge">{selectedIds.length}</span>
+            <span className="bulk-badge">{effectiveSelectedIds.length}</span>
             <span>
-              Đã chọn <strong>{selectedIds.length}</strong> giao dịch
+              Đã chọn <strong>{effectiveSelectedIds.length}</strong> giao dịch
               <span className="bulk-total-text">
                 {" "}(Tổng: {formatMoney(totalSelectedAmount)})
               </span>
@@ -120,7 +150,7 @@ function TransactionTable({
               className="button-small button-danger"
               onClick={handleBulkDeleteClick}
             >
-              🗑️ Xóa ({selectedIds.length})
+              🗑️ Xóa ({effectiveSelectedIds.length})
             </button>
             <button
               type="button"
@@ -145,7 +175,10 @@ function TransactionTable({
                 <th className="checkbox-col">
                   <input
                     type="checkbox"
-                    checked={isAllSelected}
+                    ref={(el) => {
+                      if (el) el.indeterminate = isCurrentPageSomeSelected;
+                    }}
+                    checked={isCurrentPageAllSelected}
                     onChange={toggleSelectAll}
                     aria-label="Chọn tất cả giao dịch trong trang"
                   />
@@ -162,7 +195,7 @@ function TransactionTable({
             <tbody>
               {transactions.map((transaction) => {
                 const isTransfer = transaction.type === "transfer";
-                const isSelected = selectedIds.includes(transaction.id);
+                const isSelected = effectiveSelectedIds.includes(transaction.id);
 
                 return (
                   <tr
@@ -245,7 +278,7 @@ function TransactionTable({
           onClose={() => setIsCategoryModalOpen(false)}
           onConfirm={handleBulkChangeCategoryConfirm}
           categories={categories}
-          selectedCount={selectedIds.length}
+          selectedCount={effectiveSelectedIds.length}
           hasIncome={hasIncome}
           hasExpense={hasExpense}
         />

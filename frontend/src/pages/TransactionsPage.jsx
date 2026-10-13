@@ -42,6 +42,7 @@ function TransactionsPage() {
       />
       <TransactionTable
         transactions={paginatedTransactions}
+        allTransactions={filteredTransactions}
         totalTransactions={filteredTransactions.length}
         loading={loading}
         categories={categories}

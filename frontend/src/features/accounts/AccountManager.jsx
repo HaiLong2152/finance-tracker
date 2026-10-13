@@ -24,6 +24,7 @@ export default function AccountManager({
 }) {
   const [formData, setFormData] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
+  const [editingEarliestTxDate, setEditingEarliestTxDate] = useState(null);
   const [saving, setSaving] = useState(false);
   const { setNotice, setError, confirm } = useUI();
 
@@ -34,6 +35,7 @@ export default function AccountManager({
 
   const startEdit = (acc) => {
     setEditingId(acc.id);
+    setEditingEarliestTxDate(acc.earliest_transaction_date ? String(acc.earliest_transaction_date).slice(0, 10) : null);
     setFormData({
       name: acc.name,
       type: acc.type,
@@ -50,6 +52,7 @@ export default function AccountManager({
 
   const cancelEdit = () => {
     setEditingId(null);
+    setEditingEarliestTxDate(null);
     setFormData(emptyForm);
     setError("");
   };
@@ -59,6 +62,12 @@ export default function AccountManager({
     setSaving(true);
     setError("");
     setNotice("");
+
+    if (editingId && editingEarliestTxDate && formData.start_date > editingEarliestTxDate) {
+      setError(`Ngày bắt đầu theo dõi (${formData.start_date}) không thể sau ngày giao dịch sớm nhất của ví (${formatDate(editingEarliestTxDate)}). Vui lòng chọn ngày trước hoặc bằng ngày giao dịch này.`);
+      setSaving(false);
+      return;
+    }
 
     const payload = {
       name: formData.name.trim(),
@@ -80,6 +89,7 @@ export default function AccountManager({
       }
       setFormData(emptyForm);
       setEditingId(null);
+      setEditingEarliestTxDate(null);
       await onChanged();
     } catch (err) {
       setError(getApiErrorMessage(err, "Không thể lưu thông tin ví."));
@@ -184,8 +194,14 @@ export default function AccountManager({
                 name="start_date"
                 value={formData.start_date}
                 onChange={handleChange}
+                max={editingEarliestTxDate || undefined}
                 required
               />
+              {editingEarliestTxDate && (
+                <small className="field-hint warning">
+                  Ví đã có giao dịch từ ngày {formatDate(editingEarliestTxDate)}. Ngày bắt đầu không thể sau ngày này.
+                </small>
+              )}
             </label>
 
             <label>

@@ -112,6 +112,16 @@ const updateAccount = async (id, body) => {
     }
 
     const parsed = parseAccount(body, existing);
+
+    // Kiểm tra tính toàn vẹn số dư: Ngày bắt đầu không thể muộn hơn ngày giao dịch sớm nhất của ví
+    const earliestTxDate = await accountRepository.getEarliestTransactionDate(id);
+    if (earliestTxDate && parsed.startDate > earliestTxDate) {
+        throw new AppError(
+            `Không thể dời ngày bắt đầu theo dõi sang ${parsed.startDate} vì ví '${existing.name}' đã có giao dịch vào ngày ${earliestTxDate}. Ngày bắt đầu theo dõi phải trước hoặc bằng ngày giao dịch sớm nhất để đảm bảo tính toàn vẹn số dư.`,
+            400
+        );
+    }
+
     try {
         await accountRepository.update(id, parsed);
         return true;

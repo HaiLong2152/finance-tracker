@@ -11,7 +11,7 @@ const findAll = async (includeArchived = false) => {
             a.name, 
             a.type, 
             a.initial_balance, 
-            a.start_date, 
+            DATE_FORMAT(a.start_date, '%Y-%m-%d') AS start_date, 
             a.identifier_hint, 
             a.is_archived, 
             a.sort_order, 
@@ -28,7 +28,8 @@ const findAll = async (includeArchived = false) => {
                     END
                 ), 0)
             ) AS current_balance,
-            COUNT(DISTINCT t.id) AS transaction_count
+            COUNT(DISTINCT t.id) AS transaction_count,
+            DATE_FORMAT(MIN(t.transaction_date), '%Y-%m-%d') AS earliest_transaction_date
         FROM accounts a
         LEFT JOIN transactions t 
             ON (t.account_id = a.id OR t.transfer_account_id = a.id)
@@ -50,7 +51,7 @@ const findById = async (id) => {
             a.name, 
             a.type, 
             a.initial_balance, 
-            a.start_date, 
+            DATE_FORMAT(a.start_date, '%Y-%m-%d') AS start_date, 
             a.identifier_hint, 
             a.is_archived, 
             a.sort_order, 
@@ -67,7 +68,8 @@ const findById = async (id) => {
                     END
                 ), 0)
             ) AS current_balance,
-            COUNT(DISTINCT t.id) AS transaction_count
+            COUNT(DISTINCT t.id) AS transaction_count,
+            DATE_FORMAT(MIN(t.transaction_date), '%Y-%m-%d') AS earliest_transaction_date
         FROM accounts a
         LEFT JOIN transactions t 
             ON (t.account_id = a.id OR t.transfer_account_id = a.id)
@@ -89,6 +91,19 @@ const countTransactions = async (accountId) => {
     `;
     const [[result]] = await db.query(sql, [accountId, accountId]);
     return result.total;
+};
+
+/**
+ * Lấy ngày giao dịch sớm nhất liên quan đến ví (nguồn hoặc đích)
+ */
+const getEarliestTransactionDate = async (accountId) => {
+    const sql = `
+        SELECT DATE_FORMAT(MIN(transaction_date), '%Y-%m-%d') AS earliest_date 
+        FROM transactions 
+        WHERE account_id = ? OR transfer_account_id = ?
+    `;
+    const [[result]] = await db.query(sql, [accountId, accountId]);
+    return result?.earliest_date || null;
 };
 
 /**
@@ -154,6 +169,7 @@ module.exports = {
     findAll,
     findById,
     countTransactions,
+    getEarliestTransactionDate,
     create,
     update,
     setArchiveStatus,

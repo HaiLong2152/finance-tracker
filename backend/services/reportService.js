@@ -25,7 +25,17 @@ const validateMonth = (month) => {
 };
 
 const getSummary = async (monthQuery) => {
-    const month = monthQuery ? validateMonth(monthQuery) : getCurrentMonth();
+    if (!monthQuery || monthQuery === 'all') {
+        const current = await reportRepository.getAllTimeSummary();
+        return {
+            month: '',
+            current,
+            previous: null,
+            comparison: null
+        };
+    }
+
+    const month = validateMonth(monthQuery);
     const prevMonth = getPreviousMonth(month);
 
     const [current, previous] = await Promise.all([
@@ -59,7 +69,17 @@ const getSummary = async (monthQuery) => {
 };
 
 const getByCategory = async (monthQuery) => {
-    const month = monthQuery ? validateMonth(monthQuery) : getCurrentMonth();
+    if (!monthQuery || monthQuery === 'all') {
+        const items = await reportRepository.getAllTimeCategoryBreakdown();
+        const totalExpense = items.reduce((sum, item) => sum + item.total_amount, 0);
+        return {
+            month: '',
+            total_expense: totalExpense,
+            items
+        };
+    }
+
+    const month = validateMonth(monthQuery);
     const items = await reportRepository.getCategoryBreakdown(month);
     const totalExpense = items.reduce((sum, item) => sum + item.total_amount, 0);
 
@@ -68,6 +88,10 @@ const getByCategory = async (monthQuery) => {
         total_expense: totalExpense,
         items
     };
+};
+
+const getAvailableMonths = async () => {
+    return await reportRepository.getAvailableMonths();
 };
 
 const getTrend = async (monthsCountQuery) => {
@@ -128,6 +152,7 @@ const getTrend = async (monthsCountQuery) => {
 module.exports = {
     getSummary,
     getByCategory,
-    getTrend
+    getTrend,
+    getAvailableMonths
 };
 

@@ -176,8 +176,20 @@ const parseTransaction = async (body) => {
     };
 };
 
-const getAllTransactions = async () => {
-    return await transactionRepository.findAll();
+const getAllTransactions = async (query = {}) => {
+    if (query.all === 'true' || query.all === true) {
+        const items = await transactionRepository.findAll();
+        return {
+            items,
+            pagination: {
+                page: 1,
+                limit: items.length,
+                totalItems: items.length,
+                totalPages: 1
+            }
+        };
+    }
+    return await transactionRepository.findWithPaginationAndFilters(query);
 };
 
 const createTransaction = async (body) => {

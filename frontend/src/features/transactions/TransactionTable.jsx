@@ -4,8 +4,7 @@ import BulkCategoryModal from "./BulkCategoryModal";
 
 function TransactionTable({
   transactions = [],
-  allTransactions,
-  totalTransactions,
+  totalTransactions = 0,
   loading,
   categories = [],
   onEdit,
@@ -13,26 +12,16 @@ function TransactionTable({
   onBulkChangeCategory,
   onBulkDelete,
 }) {
-  const [selectedIds, setSelectedIds] = useState([]);
+  const [selectedMap, setSelectedMap] = useState({});
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 
-  // Danh sách giao dịch nguồn để tra cứu: ưu tiên allTransactions (toàn bộ kết quả lọc trên tất cả các trang)
-  const transactionSource = allTransactions ?? transactions;
-
-  // Tập hợp ID thực tế tồn tại trong nguồn dữ liệu hiện tại
-  const validIdSet = useMemo(() => {
-    return new Set(transactionSource.map((t) => t.id));
-  }, [transactionSource]);
-
-  // Các ID được chọn thực sự hợp lệ (tự động loại bỏ các ID không còn tồn tại khi thay đổi bộ lọc)
-  const effectiveSelectedIds = useMemo(() => {
-    return selectedIds.filter((id) => validIdSet.has(id));
-  }, [selectedIds, validIdSet]);
-
   const selectedTransactions = useMemo(() => {
-    const idSet = new Set(effectiveSelectedIds);
-    return transactionSource.filter((t) => idSet.has(t.id));
-  }, [transactionSource, effectiveSelectedIds]);
+    return Object.values(selectedMap);
+  }, [selectedMap]);
+
+  const selectedIds = useMemo(() => {
+    return Object.keys(selectedMap).map(Number);
+  }, [selectedMap]);
 
   const totalSelectedAmount = useMemo(() => {
     return selectedTransactions.reduce((sum, t) => sum + Number(t.amount || 0), 0);
@@ -53,52 +42,65 @@ function TransactionTable({
   // Trạng thái checkbox ở header: áp dụng cho các giao dịch trong trang hiện tại
   const isCurrentPageAllSelected = useMemo(() => {
     if (transactions.length === 0) return false;
-    const idSet = new Set(effectiveSelectedIds);
-    return transactions.every((t) => idSet.has(t.id));
-  }, [transactions, effectiveSelectedIds]);
+    return transactions.every((t) => Boolean(selectedMap[t.id]));
+  }, [transactions, selectedMap]);
 
   const isCurrentPageSomeSelected = useMemo(() => {
     if (transactions.length === 0) return false;
-    const idSet = new Set(effectiveSelectedIds);
-    return transactions.some((t) => idSet.has(t.id)) && !isCurrentPageAllSelected;
-  }, [transactions, effectiveSelectedIds, isCurrentPageAllSelected]);
+    return transactions.some((t) => Boolean(selectedMap[t.id])) && !isCurrentPageAllSelected;
+  }, [transactions, selectedMap, isCurrentPageAllSelected]);
 
   const toggleSelectAll = () => {
-    const pageIds = transactions.map((t) => t.id);
-    if (isCurrentPageAllSelected) {
-      // Bỏ chọn toàn bộ trang hiện tại nhưng giữ các trang khác
-      const pageIdSet = new Set(pageIds);
-      setSelectedIds(effectiveSelectedIds.filter((id) => !pageIdSet.has(id)));
-    } else {
-      // Chọn tất cả trang hiện tại và hợp nhất với các ID đã chọn ở trang khác
-      setSelectedIds(Array.from(new Set([...effectiveSelectedIds, ...pageIds])));
-    }
+    setSelectedMap((prev) => {
+      const next = { ...prev };
+      if (isCurrentPageAllSelected) {
+        // Bỏ chọn toàn bộ trang hiện tại nhưng giữ các trang khác
+        transactions.forEach((t) => {
+          delete next[t.id];
+        });
+      } else {
+        // Chọn tất cả trang hiện tại và lưu đủ thông tin (id, amount, type)
+        transactions.forEach((t) => {
+          next[t.id] = { id: t.id, amount: t.amount, type: t.type };
+        });
+      }
+      return next;
+    });
   };
 
-  const toggleSelect = (id) => {
-    setSelectedIds((prev) => {
-      const base = prev.filter((item) => validIdSet.has(item));
-      return base.includes(id) ? base.filter((item) => item !== id) : [...base, id];
+  const toggleSelect = (transaction) => {
+    setSelectedMap((prev) => {
+      const next = { ...prev };
+      if (next[transaction.id]) {
+        delete next[transaction.id];
+      } else {
+        next[transaction.id] = {
+          id: transaction.id,
+          amount: transaction.amount,
+          type: transaction.type,
+        };
+      }
+      return next;
     });
   };
 
   const handleClearSelection = () => {
-    setSelectedIds([]);
+    setSelectedMap({});
   };
 
   const handleBulkChangeCategoryConfirm = async (categoryId) => {
-    const success = await onBulkChangeCategory(effectiveSelectedIds, categoryId);
+    const success = await onBulkChangeCategory(selectedIds, categoryId);
     if (success) {
-      setSelectedIds([]);
+      setSelectedMap({});
       setIsCategoryModalOpen(false);
     }
     return success;
   };
 
   const handleBulkDeleteClick = async () => {
-    const success = await onBulkDelete(effectiveSelectedIds, totalSelectedAmount);
+    const success = await onBulkDelete(selectedIds, totalSelectedAmount);
     if (success) {
-      setSelectedIds([]);
+      setSelectedMap({});
     }
   };
 
@@ -123,12 +125,12 @@ function TransactionTable({
       </div>
 
       {/* Thanh tác vụ hàng loạt nổi bật khi có chọn */}
-      {effectiveSelectedIds.length > 0 && (
+      {selectedIds.length > 0 && (
         <div className="bulk-action-bar" role="toolbar" aria-label="Thao tác hàng loạt">
           <div className="bulk-info">
-            <span className="bulk-badge">{effectiveSelectedIds.length}</span>
+            <span className="bulk-badge">{selectedIds.length}</span>
             <span>
-              Đã chọn <strong>{effectiveSelectedIds.length}</strong> giao dịch
+              Đã chọn <strong>{selectedIds.length}</strong> giao dịch
               <span className="bulk-total-text">
                 {" "}(Tổng: {formatMoney(totalSelectedAmount)})
               </span>
@@ -150,7 +152,7 @@ function TransactionTable({
               className="button-small button-danger"
               onClick={handleBulkDeleteClick}
             >
-              🗑️ Xóa ({effectiveSelectedIds.length})
+              🗑️ Xóa ({selectedIds.length})
             </button>
             <button
               type="button"
@@ -195,7 +197,7 @@ function TransactionTable({
             <tbody>
               {transactions.map((transaction) => {
                 const isTransfer = transaction.type === "transfer";
-                const isSelected = effectiveSelectedIds.includes(transaction.id);
+                const isSelected = Boolean(selectedMap[transaction.id]);
 
                 return (
                   <tr
@@ -204,14 +206,14 @@ function TransactionTable({
                     onClick={(e) => {
                       // Cho phép click vào hàng để toggle checkbox nếu không click vào nút
                       if (e.target.closest("button") || e.target.closest("input")) return;
-                      toggleSelect(transaction.id);
+                      toggleSelect(transaction);
                     }}
                   >
                     <td className="checkbox-col">
                       <input
                         type="checkbox"
                         checked={isSelected}
-                        onChange={() => toggleSelect(transaction.id)}
+                        onChange={() => toggleSelect(transaction)}
                         aria-label={`Chọn giao dịch ID ${transaction.id}`}
                       />
                     </td>
@@ -278,7 +280,7 @@ function TransactionTable({
           onClose={() => setIsCategoryModalOpen(false)}
           onConfirm={handleBulkChangeCategoryConfirm}
           categories={categories}
-          selectedCount={effectiveSelectedIds.length}
+          selectedCount={selectedIds.length}
           hasIncome={hasIncome}
           hasExpense={hasExpense}
         />

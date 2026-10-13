@@ -11,7 +11,7 @@ function TransactionsPage() {
   const { accounts, activeAccounts } = useAccounts();
   const {
     formData, saving, editingId, handleChange, handleSubmit, resetForm,
-    filters, handleFilterChange, resetFilters, paginatedTransactions, filteredTransactions,
+    filters, handleFilterChange, resetFilters, paginatedTransactions, totalTransactions,
     loading, handleEdit, handleDelete, bulkChangeCategory, bulkDelete,
     activePage, totalPages, setCurrentPage,
   } = useTransactions();
@@ -42,8 +42,7 @@ function TransactionsPage() {
       />
       <TransactionTable
         transactions={paginatedTransactions}
-        allTransactions={filteredTransactions}
-        totalTransactions={filteredTransactions.length}
+        totalTransactions={totalTransactions}
         loading={loading}
         categories={categories}
         onEdit={handleEdit}

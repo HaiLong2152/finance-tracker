@@ -11,54 +11,37 @@ const formatMonth = (month) => {
 };
 
 function DashboardSummary({
-  transactions,
   month,
   onMonthChange,
+  availableMonths: propAvailableMonths = [],
   accounts = [],
   totalNetWorth = 0,
   budgetsData = null,
   reportSummary = null,
+  categoryBreakdown = [],
   trendData = [],
 }) {
   const currentMonth = useMemo(() => getCurrentMonth(), []);
 
   const availableMonths = useMemo(() => {
-    const months = new Set(
-      transactions.map((transaction) =>
-        String(transaction.transaction_date).slice(0, 7)
-      )
-    );
+    const months = new Set(propAvailableMonths);
     if (currentMonth) months.add(currentMonth);
     if (month) months.add(month);
     return Array.from(months).filter(Boolean).sort().reverse();
-  }, [transactions, currentMonth, month]);
+  }, [propAvailableMonths, currentMonth, month]);
 
-  const monthTransactions = useMemo(() => transactions.filter((transaction) => (
-    !month || String(transaction.transaction_date).slice(0, 7) === month
-  )), [transactions, month]);
+  const income = Number(reportSummary?.current?.income || 0);
+  const expense = Number(reportSummary?.current?.expense || 0);
+  const transactionCount = Number(reportSummary?.current?.transaction_count || 0);
 
-  const { income, expense, expenseCategories } = useMemo(() => monthTransactions.reduce((result, transaction) => {
-    const amount = Number(transaction.amount);
-    if (transaction.type === "income") result.income += amount;
-    if (transaction.type === "expense") {
-      result.expense += amount;
-      const catName = transaction.category_name || "Khác";
-      result.expenseCategories[catName] = (result.expenseCategories[catName] || 0) + amount;
-    }
-    return result;
-  }, { income: 0, expense: 0, expenseCategories: {} }), [monthTransactions]);
+  const categoryItems = useMemo(() => {
+    return [...categoryBreakdown].sort((a, b) => b.total_amount - a.total_amount);
+  }, [categoryBreakdown]);
 
-  const categoryAmounts = Object.entries(expenseCategories).sort(([, first], [, second]) => second - first);
-  const largestExpense = categoryAmounts[0]?.[1] || 1;
+  const largestExpense = categoryItems[0]?.total_amount || 1;
 
-  // Chuẩn bị dữ liệu cho Biểu đồ tròn
-  const pieChartData = useMemo(() => {
-    return categoryAmounts.map(([name, amount]) => ({
-      category_name: name,
-      total_amount: amount,
-      percentage: expense > 0 ? Math.round((amount / expense) * 100) : 0,
-    }));
-  }, [categoryAmounts, expense]);
+  // Dữ liệu cho Biểu đồ tròn
+  const pieChartData = categoryBreakdown;
 
   // So sánh tháng trước từ reportSummary
   const comparison = reportSummary?.comparison;
@@ -122,7 +105,7 @@ function DashboardSummary({
         </article>
         <article className="summary-card count-card">
           <span>Số giao dịch</span>
-          <strong>{monthTransactions.length}</strong>
+          <strong>{transactionCount}</strong>
         </article>
       </section>
 
@@ -255,21 +238,21 @@ function DashboardSummary({
       <section className="panel category-breakdown" aria-labelledby="breakdown-title">
         <div className="section-heading">
           <h2 id="breakdown-title">Chi tiết chi theo danh mục</h2>
-          <span>{categoryAmounts.length} danh mục</span>
+          <span>{categoryItems.length} danh mục</span>
         </div>
-        {categoryAmounts.length === 0 ? (
+        {categoryItems.length === 0 ? (
           <p className="empty-state">Chưa có khoản chi trong khoảng thời gian này.</p>
         ) : (
-          categoryAmounts.map(([name, amount]) => (
-            <div className="breakdown-row" key={name}>
+          categoryItems.map((item) => (
+            <div className="breakdown-row" key={item.category_id || item.category_name}>
               <div>
-                <span>{name}</span>
-                <strong>{formatMoney(amount)}</strong>
+                <span>{item.category_name}</span>
+                <strong>{formatMoney(item.total_amount)} ({item.percentage}%)</strong>
               </div>
               <div className="bar-track">
                 <div
                   className="bar-fill"
-                  style={{ width: `${(amount / largestExpense) * 100}%` }}
+                  style={{ width: `${(item.total_amount / largestExpense) * 100}%` }}
                 />
               </div>
             </div>

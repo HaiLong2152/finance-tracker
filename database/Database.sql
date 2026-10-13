@@ -51,7 +51,8 @@ CREATE TABLE IF NOT EXISTS transactions (
       (type = 'transfer' AND transfer_account_id IS NOT NULL AND transfer_account_id <> account_id AND category_id IS NULL)
       OR
       (type IN ('income', 'expense') AND transfer_account_id IS NULL AND category_id IS NOT NULL)
-    )
+    ),
+  INDEX idx_transactions_date (transaction_date)
 );
 
 -- Bảng ngân sách theo danh mục & tháng

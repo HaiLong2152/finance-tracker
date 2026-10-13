@@ -52,7 +52,7 @@ export const accountApi = {
 };
 
 export const transactionApi = {
-  list: () => apiClient.get("/transactions"),
+  list: (params) => apiClient.get("/transactions", { params }),
   create: (payload) => apiClient.post("/transactions", payload),
   update: (id, payload) => apiClient.put(`/transactions/${id}`, payload),
   remove: (id) => apiClient.delete(`/transactions/${id}`),
@@ -69,9 +69,10 @@ export const budgetApi = {
 };
 
 export const reportApi = {
-  getSummary: (month) => apiClient.get("/reports/summary", { params: { month } }),
-  getByCategory: (month) => apiClient.get("/reports/by-category", { params: { month } }),
+  getSummary: (month) => apiClient.get("/reports/summary", { params: { month: month || undefined } }),
+  getByCategory: (month) => apiClient.get("/reports/by-category", { params: { month: month || undefined } }),
   getTrend: (months = 6) => apiClient.get("/reports/trend", { params: { months } }),
+  getMonths: () => apiClient.get("/reports/months"),
 };
 
 export const getApiErrorMessage = (error, fallback) => {

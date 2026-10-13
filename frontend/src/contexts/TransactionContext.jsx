@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useMemo } from "react";
+import { createContext, useContext, useState, useCallback, useRef, useEffect } from "react";
 import { transactionApi, getApiErrorMessage } from "../services/api";
 import { useUI } from "./UIContext";
 import { useAccounts } from "./AccountContext";
@@ -31,7 +31,10 @@ const emptyFilters = {
 const pageSize = 10;
 
 export function TransactionProvider({ children }) {
-  const [transactions, setTransactions] = useState([]);
+  const [paginatedTransactions, setPaginatedTransactions] = useState([]);
+  const [totalTransactions, setTotalTransactions] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState(emptyForm);
@@ -39,23 +42,89 @@ export function TransactionProvider({ children }) {
   const [saving, setSaving] = useState(false);
   const [filters, setFilters] = useState(emptyFilters);
   const [dashboardMonth, setDashboardMonth] = useState(() => getCurrentMonth());
-  const [currentPage, setCurrentPage] = useState(1);
 
   const { setError, setNotice, confirm } = useUI();
   const { fetchAccounts } = useAccounts();
   const { fetchBudgets } = useBudgets();
 
-  const fetchTransactions = useCallback(async () => {
+  const currentPageRef = useRef(currentPage);
+  const filtersRef = useRef(filters);
+
+  useEffect(() => {
+    currentPageRef.current = currentPage;
+  }, [currentPage]);
+
+  useEffect(() => {
+    filtersRef.current = filters;
+  }, [filters]);
+
+  const fetchTransactions = useCallback(async (pageParam, filtersParam) => {
     setLoading(true);
     try {
-      const response = await transactionApi.list();
-      setTransactions(response.data.data || []);
+      const pageToUse = pageParam ?? currentPageRef.current;
+      const filtersToUse = filtersParam ?? filtersRef.current;
+
+      const params = {
+        page: pageToUse,
+        limit: pageSize,
+      };
+
+      if (filtersToUse.search && filtersToUse.search.trim()) {
+        params.search = filtersToUse.search.trim();
+      }
+      if (filtersToUse.type) {
+        params.type = filtersToUse.type;
+      }
+      if (filtersToUse.accountId) {
+        params.accountId = filtersToUse.accountId;
+      }
+      if (filtersToUse.categoryId) {
+        params.categoryId = filtersToUse.categoryId;
+      }
+      if (filtersToUse.from) {
+        params.from = filtersToUse.from;
+      }
+      if (filtersToUse.to) {
+        params.to = filtersToUse.to;
+      }
+
+      const response = await transactionApi.list(params);
+      const data = response.data?.data;
+
+      if (data && data.items) {
+        setPaginatedTransactions(data.items);
+        setTotalTransactions(data.pagination.totalItems);
+        setTotalPages(data.pagination.totalPages);
+      } else if (Array.isArray(data)) {
+        setPaginatedTransactions(data);
+        setTotalTransactions(data.length);
+        setTotalPages(Math.max(1, Math.ceil(data.length / pageSize)));
+      }
     } catch (error) {
       setError(getApiErrorMessage(error, "Không thể tải giao dịch."));
     } finally {
       setLoading(false);
     }
   }, [setError]);
+
+  // Debounce tìm kiếm văn bản 350ms trước khi gọi fetch
+  const isFirstMount = useRef(true);
+  useEffect(() => {
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
+    }
+    const timer = setTimeout(() => {
+      setCurrentPage(1);
+      fetchTransactions(1, filtersRef.current);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [filters.search, fetchTransactions]);
+
+  const handlePageChange = useCallback((page) => {
+    setCurrentPage(page);
+    fetchTransactions(page);
+  }, [fetchTransactions]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -74,57 +143,20 @@ export function TransactionProvider({ children }) {
   };
 
   const handleFilterChange = (event) => {
-    setFilters((current) => ({ ...current, [event.target.name]: event.target.value }));
+    const { name, value } = event.target;
+    const nextFilters = { ...filters, [name]: value };
+    setFilters(nextFilters);
     setCurrentPage(1);
+    if (name !== "search") {
+      fetchTransactions(1, nextFilters);
+    }
   };
 
   const resetFilters = () => {
     setFilters(emptyFilters);
     setCurrentPage(1);
+    fetchTransactions(1, emptyFilters);
   };
-
-  const filteredTransactions = useMemo(() => {
-    return transactions.filter((transaction) => {
-      const transactionDate = String(transaction.transaction_date).slice(0, 10);
-      const search = filters.search.trim().toLowerCase();
-
-      const matchesSearch =
-        !search ||
-        String(transaction.note || "").toLowerCase().includes(search) ||
-        String(transaction.category_name || "").toLowerCase().includes(search) ||
-        String(transaction.account_name || "").toLowerCase().includes(search) ||
-        String(transaction.transfer_account_name || "").toLowerCase().includes(search);
-
-      const matchesType = !filters.type || transaction.type === filters.type;
-
-      const matchesAccount =
-        !filters.accountId ||
-        String(transaction.account_id) === filters.accountId ||
-        String(transaction.transfer_account_id) === filters.accountId;
-
-      const matchesCategory =
-        !filters.categoryId || String(transaction.category_id) === filters.categoryId;
-
-      const matchesFrom = !filters.from || transactionDate >= filters.from;
-      const matchesTo = !filters.to || transactionDate <= filters.to;
-
-      return (
-        matchesSearch &&
-        matchesType &&
-        matchesAccount &&
-        matchesCategory &&
-        matchesFrom &&
-        matchesTo
-      );
-    });
-  }, [transactions, filters]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / pageSize));
-  const activePage = Math.min(currentPage, totalPages);
-  const paginatedTransactions = filteredTransactions.slice(
-    (activePage - 1) * pageSize,
-    activePage * pageSize
-  );
 
   const resetForm = () => {
     setFormData(emptyForm);
@@ -255,7 +287,10 @@ export function TransactionProvider({ children }) {
   return (
     <TransactionContext.Provider
       value={{
-        transactions,
+        transactions: paginatedTransactions,
+        paginatedTransactions,
+        filteredTransactions: paginatedTransactions,
+        totalTransactions,
         loading,
         fetchTransactions,
         formData,
@@ -275,11 +310,10 @@ export function TransactionProvider({ children }) {
         resetFilters,
         dashboardMonth,
         setDashboardMonth,
-        filteredTransactions,
-        paginatedTransactions,
-        activePage,
+        activePage: currentPage,
+        currentPage,
         totalPages,
-        setCurrentPage,
+        setCurrentPage: handlePageChange,
       }}
     >
       {children}

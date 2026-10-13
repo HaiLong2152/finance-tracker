@@ -27,9 +27,19 @@ const getTrend = async (req, res, next) => {
     }
 };
 
+const getMonths = async (req, res, next) => {
+    try {
+        const data = await reportService.getAvailableMonths();
+        res.json({ success: true, data });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     getSummary,
     getByCategory,
-    getTrend
+    getTrend,
+    getMonths
 };
 

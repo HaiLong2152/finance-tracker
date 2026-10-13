@@ -1,16 +1,24 @@
 import { useState, useMemo, useRef } from "react";
-import { categoryApi, getApiErrorMessage } from "../../services/api";
-import { useUI } from "../../contexts/UIContext";
-import { useBudgets } from "../../contexts/BudgetContext";
+import { useCategories } from "../../contexts/CategoryContext";
 
-function CategoryManager({ categories = [], onChanged, onNotice, onError }) {
-  const { confirm } = useUI();
-  const { fetchBudgets } = useBudgets();
+function CategoryManager({ categories: propCategories }) {
+  const {
+    categories: ctxCategories,
+    saving: ctxSaving,
+    createCategory,
+    updateCategory,
+    deleteCategory,
+  } = useCategories();
+
+  const categories = propCategories ?? ctxCategories;
+
   const [currentType, setCurrentType] = useState("expense"); // "expense" | "income"
   const [categoryName, setCategoryName] = useState("");
   const [editingId, setEditingId] = useState(null);
-  const [saving, setSaving] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const inputRef = useRef(null);
+
+  const saving = ctxSaving || submitting;
 
   const expenseCount = useMemo(
     () => categories.filter((c) => c.type === "expense").length,
@@ -31,31 +39,15 @@ function CategoryManager({ categories = [], onChanged, onNotice, onError }) {
     const trimmed = categoryName.trim();
     if (!trimmed) return;
 
-    setSaving(true);
-    onError("");
-    onNotice("");
+    setSubmitting(true);
+    const success = editingId
+      ? await updateCategory(editingId, { name: trimmed, type: currentType })
+      : await createCategory({ name: trimmed, type: currentType });
+    setSubmitting(false);
 
-    try {
-      if (editingId) {
-        const res = await categoryApi.update(editingId, {
-          name: trimmed,
-          type: currentType,
-        });
-        onNotice(res.data?.message || "Đã cập nhật danh mục.");
-      } else {
-        const res = await categoryApi.create({
-          name: trimmed,
-          type: currentType,
-        });
-        onNotice(res.data?.message || `Đã thêm danh mục ${currentType === "expense" ? "chi tiêu" : "thu nhập"}.`);
-      }
+    if (success) {
       setCategoryName("");
       setEditingId(null);
-      await onChanged();
-    } catch (err) {
-      onError(getApiErrorMessage(err, "Không thể lưu danh mục."));
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -63,8 +55,6 @@ function CategoryManager({ categories = [], onChanged, onNotice, onError }) {
     setEditingId(cat.id);
     setCategoryName(cat.name);
     setCurrentType(cat.type);
-    onError("");
-    onNotice("");
     inputRef.current?.focus();
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -75,35 +65,9 @@ function CategoryManager({ categories = [], onChanged, onNotice, onError }) {
   };
 
   const handleRemove = async (cat) => {
-    if (Number(cat.transaction_count) > 0) {
-      await confirm(
-        "Không thể xóa danh mục",
-        `Danh mục "${cat.name}" đang được sử dụng trong ${cat.transaction_count} giao dịch. Vui lòng chuyển các giao dịch này sang danh mục khác trước khi xóa.`
-      );
-      return;
-    }
-
-    const hasBudgets = Number(cat.budget_count) > 0;
-    const confirmTitle = hasBudgets ? "Cảnh báo: Danh mục đang có ngân sách" : "Xác nhận xóa danh mục";
-    const confirmMessage = hasBudgets
-      ? `Danh mục "${cat.name}" đang có ${cat.budget_count} hạn mức ngân sách được thiết lập qua các tháng. Việc xóa danh mục sẽ đồng thời XÓA TOÀN BỘ các hạn mức ngân sách này.\n\nBạn có chắc chắn muốn tiếp tục xóa không?`
-      : `Bạn có chắc muốn xóa danh mục "${cat.name}"?`;
-
-    const isConfirmed = await confirm(confirmTitle, confirmMessage);
-    if (!isConfirmed) return;
-
-    onError("");
-    onNotice("");
-    try {
-      const res = await categoryApi.remove(cat.id);
-      if (editingId === cat.id) cancelEdit();
-      onNotice(res.data?.message || "Đã xóa danh mục.");
-      await onChanged();
-      if (hasBudgets && typeof fetchBudgets === "function") {
-        await fetchBudgets();
-      }
-    } catch (err) {
-      onError(getApiErrorMessage(err, "Không thể xóa danh mục."));
+    const success = await deleteCategory(cat);
+    if (success && editingId === cat.id) {
+      cancelEdit();
     }
   };
 

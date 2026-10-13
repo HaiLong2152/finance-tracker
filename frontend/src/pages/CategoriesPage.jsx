@@ -1,11 +1,9 @@
 import { NavLink } from "react-router-dom";
 import { useCategories } from "../contexts/CategoryContext";
-import { useUI } from "../contexts/UIContext";
 import CategoryManager from "../features/categories/CategoryManager";
 
 function CategoriesPage() {
-  const { categories, fetchCategories } = useCategories();
-  const { setNotice, setError } = useUI();
+  const { categories } = useCategories();
 
   return (
     <>
@@ -30,7 +28,7 @@ function CategoriesPage() {
         </NavLink>
       </div>
 
-      <CategoryManager categories={categories} onChanged={fetchCategories} onNotice={setNotice} onError={setError} />
+      <CategoryManager />
     </>
   );
 }

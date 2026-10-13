@@ -61,15 +61,15 @@ function App() {
   return (
     <UIProvider>
       <AuthProvider>
-        <CategoryProvider>
-          <AccountProvider>
-            <BudgetProvider>
+        <BudgetProvider>
+          <CategoryProvider>
+            <AccountProvider>
               <TransactionProvider>
                 <AppContent />
               </TransactionProvider>
-            </BudgetProvider>
-          </AccountProvider>
-        </CategoryProvider>
+            </AccountProvider>
+          </CategoryProvider>
+        </BudgetProvider>
       </AuthProvider>
     </UIProvider>
   );

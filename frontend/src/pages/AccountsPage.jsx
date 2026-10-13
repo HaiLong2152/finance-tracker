@@ -4,14 +4,7 @@ import AccountManager from "../features/accounts/AccountManager";
 import { formatMoney } from "../utils/formatters";
 
 function AccountsPage() {
-  const {
-    accounts,
-    totalNetWorth,
-    loading,
-    showArchived,
-    toggleShowArchived,
-    fetchAccounts,
-  } = useAccounts();
+  const { accounts, totalNetWorth } = useAccounts();
 
   return (
     <>
@@ -46,13 +39,7 @@ function AccountsPage() {
         </NavLink>
       </div>
 
-      <AccountManager
-        accounts={accounts}
-        loading={loading}
-        showArchived={showArchived}
-        onToggleArchived={toggleShowArchived}
-        onChanged={fetchAccounts}
-      />
+      <AccountManager />
     </>
   );
 }

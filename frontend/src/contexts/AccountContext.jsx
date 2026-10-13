@@ -7,8 +7,9 @@ const AccountContext = createContext();
 export function AccountProvider({ children }) {
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
-  const { setError } = useUI();
+  const { setError, setNotice, confirm } = useUI();
 
   const showArchivedRef = useRef(showArchived);
   useEffect(() => {
@@ -42,6 +43,86 @@ export function AccountProvider({ children }) {
     await fetchAccounts(nextVal);
   }, [showArchived, fetchAccounts]);
 
+  const createAccount = async (payload) => {
+    setSaving(true);
+    setError("");
+    setNotice("");
+    try {
+      const response = await accountApi.create(payload);
+      setNotice(response.data?.message || "Đã tạo ví mới thành công.");
+      await fetchAccounts();
+      return true;
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Không thể tạo ví mới."));
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateAccount = async (id, payload) => {
+    setSaving(true);
+    setError("");
+    setNotice("");
+    try {
+      const response = await accountApi.update(id, payload);
+      setNotice(response.data?.message || "Đã cập nhật thông tin ví.");
+      await fetchAccounts();
+      return true;
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Không thể cập nhật thông tin ví."));
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const archiveAccount = async (account) => {
+    const actionText = account.is_archived ? "khôi phục" : "lưu trữ";
+    const confirmed = await confirm(
+      `Xác nhận ${actionText}`,
+      `Bạn có chắc muốn ${actionText} ví "${account.name}"?`
+    );
+    if (!confirmed) return false;
+
+    setError("");
+    setNotice("");
+    try {
+      await accountApi.archive(account.id, !account.is_archived);
+      setNotice(account.is_archived ? `Đã khôi phục ví "${account.name}".` : `Đã lưu trữ ví "${account.name}".`);
+      await fetchAccounts();
+      return true;
+    } catch (err) {
+      setError(getApiErrorMessage(err, `Không thể ${actionText} ví.`));
+      return false;
+    }
+  };
+
+  const deleteAccount = async (account) => {
+    if (account.transaction_count > 0) {
+      setError(`Ví "${account.name}" đã có ${account.transaction_count} giao dịch. Vui lòng chuyển sang chế độ lưu trữ thay vì xóa.`);
+      return false;
+    }
+
+    const confirmed = await confirm(
+      "Xác nhận xóa ví",
+      `Bạn có chắc chắn muốn xóa vĩnh viễn ví "${account.name}"? Thao tác này không thể hoàn tác.`
+    );
+    if (!confirmed) return false;
+
+    setError("");
+    setNotice("");
+    try {
+      const response = await accountApi.remove(account.id);
+      setNotice(response.data?.message || `Đã xóa ví "${account.name}".`);
+      await fetchAccounts();
+      return true;
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Không thể xóa ví."));
+      return false;
+    }
+  };
+
   return (
     <AccountContext.Provider
       value={{
@@ -49,10 +130,15 @@ export function AccountProvider({ children }) {
         activeAccounts,
         totalNetWorth,
         loading,
+        saving,
         showArchived,
         setShowArchived,
         toggleShowArchived,
         fetchAccounts,
+        createAccount,
+        updateAccount,
+        archiveAccount,
+        deleteAccount,
       }}
     >
       {children}
@@ -62,4 +148,3 @@ export function AccountProvider({ children }) {
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const useAccounts = () => useContext(AccountContext);
-

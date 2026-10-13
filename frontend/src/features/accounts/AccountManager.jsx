@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { accountApi, getApiErrorMessage } from "../../services/api";
 import { useUI } from "../../contexts/UIContext";
+import { useAccounts } from "../../contexts/AccountContext";
 import { formatMoney, formatDate, formatAccountType, getLocalDateString } from "../../utils/formatters";
 
 const defaultStartDate = () => getLocalDateString();
@@ -16,17 +16,35 @@ const emptyForm = {
 };
 
 export default function AccountManager({
-  accounts,
-  loading,
-  showArchived,
+  accounts: propAccounts,
+  loading: propLoading,
+  showArchived: propShowArchived,
   onToggleArchived,
-  onChanged,
 }) {
+  const {
+    accounts: ctxAccounts,
+    loading: ctxLoading,
+    saving: ctxSaving,
+    showArchived: ctxShowArchived,
+    toggleShowArchived,
+    createAccount,
+    updateAccount,
+    archiveAccount,
+    deleteAccount,
+  } = useAccounts();
+
+  const accounts = propAccounts ?? ctxAccounts;
+  const loading = propLoading ?? ctxLoading;
+  const showArchived = propShowArchived ?? ctxShowArchived;
+  const handleToggleArchived = onToggleArchived ?? toggleShowArchived;
+
   const [formData, setFormData] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
   const [editingEarliestTxDate, setEditingEarliestTxDate] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const { setNotice, setError, confirm } = useUI();
+  const [submitting, setSubmitting] = useState(false);
+  const { setNotice, setError } = useUI();
+
+  const saving = ctxSaving || submitting;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -59,13 +77,11 @@ export default function AccountManager({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setSaving(true);
     setError("");
     setNotice("");
 
     if (editingId && editingEarliestTxDate && formData.start_date > editingEarliestTxDate) {
       setError(`Ngày bắt đầu theo dõi (${formData.start_date}) không thể sau ngày giao dịch sớm nhất của ví (${formatDate(editingEarliestTxDate)}). Vui lòng chọn ngày trước hoặc bằng ngày giao dịch này.`);
-      setSaving(false);
       return;
     }
 
@@ -79,65 +95,27 @@ export default function AccountManager({
       is_archived: Boolean(formData.is_archived),
     };
 
-    try {
-      if (editingId) {
-        await accountApi.update(editingId, payload);
-        setNotice("Đã cập nhật thông tin ví.");
-      } else {
-        await accountApi.create(payload);
-        setNotice("Đã tạo ví mới thành công.");
-      }
+    setSubmitting(true);
+    const success = editingId
+      ? await updateAccount(editingId, payload)
+      : await createAccount(payload);
+    setSubmitting(false);
+
+    if (success) {
       setFormData(emptyForm);
       setEditingId(null);
       setEditingEarliestTxDate(null);
-      await onChanged();
-    } catch (err) {
-      setError(getApiErrorMessage(err, "Không thể lưu thông tin ví."));
-    } finally {
-      setSaving(false);
     }
   };
 
   const handleArchiveToggle = async (acc) => {
-    const actionText = acc.is_archived ? "khôi phục" : "lưu trữ";
-    const confirmed = await confirm(
-      `Xác nhận ${actionText}`,
-      `Bạn có chắc muốn ${actionText} ví "${acc.name}"?`
-    );
-    if (!confirmed) return;
-
-    setError("");
-    setNotice("");
-    try {
-      await accountApi.archive(acc.id, !acc.is_archived);
-      setNotice(acc.is_archived ? `Đã khôi phục ví "${acc.name}".` : `Đã lưu trữ ví "${acc.name}".`);
-      await onChanged();
-    } catch (err) {
-      setError(getApiErrorMessage(err, `Không thể ${actionText} ví.`));
-    }
+    await archiveAccount(acc);
   };
 
   const handleDelete = async (acc) => {
-    if (acc.transaction_count > 0) {
-      setError(`Ví "${acc.name}" đã có ${acc.transaction_count} giao dịch. Vui lòng chuyển sang chế độ lưu trữ thay vì xóa.`);
-      return;
-    }
-
-    const confirmed = await confirm(
-      "Xác nhận xóa ví",
-      `Bạn có chắc chắn muốn xóa vĩnh viễn ví "${acc.name}"? Thao tác này không thể hoàn tác.`
-    );
-    if (!confirmed) return;
-
-    setError("");
-    setNotice("");
-    try {
-      await accountApi.remove(acc.id);
-      if (editingId === acc.id) cancelEdit();
-      setNotice(`Đã xóa ví "${acc.name}".`);
-      await onChanged();
-    } catch (err) {
-      setError(getApiErrorMessage(err, "Không thể xóa ví."));
+    const success = await deleteAccount(acc);
+    if (success && editingId === acc.id) {
+      cancelEdit();
     }
   };
 
@@ -257,7 +235,7 @@ export default function AccountManager({
             <input
               type="checkbox"
               checked={showArchived}
-              onChange={(e) => onToggleArchived(e.target.checked)}
+              onChange={(e) => handleToggleArchived(e.target.checked)}
             />
             Hiện ví đã lưu trữ (Archived)
           </label>

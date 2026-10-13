@@ -7,22 +7,40 @@ import TransactionsPage from "./pages/TransactionsPage";
 import CategoriesPage from "./pages/CategoriesPage";
 import AccountsPage from "./pages/AccountsPage";
 import BudgetsPage from "./pages/BudgetsPage";
+import LoginPage from "./pages/LoginPage";
 import { UIProvider } from "./contexts/UIContext";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { CategoryProvider, useCategories } from "./contexts/CategoryContext";
 import { AccountProvider, useAccounts } from "./contexts/AccountContext";
 import { TransactionProvider, useTransactions } from "./contexts/TransactionContext";
 import { BudgetProvider } from "./contexts/BudgetContext";
 
 function AppContent() {
+  const { isAuthenticated, isChecking } = useAuth();
   const { fetchCategories } = useCategories();
   const { fetchAccounts } = useAccounts();
   const { fetchTransactions } = useTransactions();
 
   useEffect(() => {
-    fetchCategories();
-    fetchAccounts();
-    fetchTransactions();
-  }, [fetchCategories, fetchAccounts, fetchTransactions]);
+    if (isAuthenticated) {
+      fetchCategories();
+      fetchAccounts();
+      fetchTransactions();
+    }
+  }, [isAuthenticated, fetchCategories, fetchAccounts, fetchTransactions]);
+
+  if (isChecking) {
+    return (
+      <div className="app-loading-screen">
+        <div className="app-loading-spinner" />
+        <p>Đang kiểm tra phiên làm việc...</p>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
 
   return (
     <BrowserRouter>
@@ -42,15 +60,17 @@ function AppContent() {
 function App() {
   return (
     <UIProvider>
-      <CategoryProvider>
-        <AccountProvider>
-          <BudgetProvider>
-            <TransactionProvider>
-              <AppContent />
-            </TransactionProvider>
-          </BudgetProvider>
-        </AccountProvider>
-      </CategoryProvider>
+      <AuthProvider>
+        <CategoryProvider>
+          <AccountProvider>
+            <BudgetProvider>
+              <TransactionProvider>
+                <AppContent />
+              </TransactionProvider>
+            </BudgetProvider>
+          </AccountProvider>
+        </CategoryProvider>
+      </AuthProvider>
     </UIProvider>
   );
 }

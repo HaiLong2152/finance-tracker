@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useUI } from "../contexts/UIContext";
+import { useAuth } from "../contexts/AuthContext";
 import QuickAddModal from "../features/transactions/QuickAddModal";
 import BrandLogo from "../components/BrandLogo";
 
@@ -62,6 +63,7 @@ const navItems = [
 
 function DashboardLayout() {
   const { error, notice, isQuickAddOpen, openQuickAdd, closeQuickAdd } = useUI();
+  const { logout } = useAuth();
 
   return (
     <div className="app-shell">
@@ -86,14 +88,27 @@ function DashboardLayout() {
           ))}
         </nav>
 
-        {/* Nút Nhập nhanh nổi bật trên Sidebar desktop */}
-        <div className="sidebar-quick-add">
+        {/* Nút Nhập nhanh & Đăng xuất trên Sidebar desktop */}
+        <div className="sidebar-bottom-actions">
           <button
             type="button"
             className="sidebar-quick-add-btn"
             onClick={openQuickAdd}
           >
             <span>+</span> Nhập nhanh
+          </button>
+          <button
+            type="button"
+            className="sidebar-logout-btn"
+            onClick={logout}
+            title="Đăng xuất khỏi hệ thống"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            <span>Đăng xuất</span>
           </button>
         </div>
       </aside>
@@ -104,14 +119,29 @@ function DashboardLayout() {
           <BrandLogo size={32} />
           <span>Finance Tracker</span>
         </div>
-        <button
-          type="button"
-          className="mobile-quick-btn"
-          onClick={openQuickAdd}
-          aria-label="Thêm nhanh"
-        >
-          + Nhập
-        </button>
+        <div className="mobile-header-actions">
+          <button
+            type="button"
+            className="mobile-quick-btn"
+            onClick={openQuickAdd}
+            aria-label="Thêm nhanh"
+          >
+            + Nhập
+          </button>
+          <button
+            type="button"
+            className="mobile-logout-btn"
+            onClick={logout}
+            aria-label="Đăng xuất"
+            title="Đăng xuất"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </button>
+        </div>
       </header>
 
       {/* Nội dung chính */}

@@ -2,7 +2,38 @@ import axios from "axios";
 
 const API_URL = (import.meta.env.VITE_API_URL || "/api").replace(/\/$/, "");
 
-const apiClient = axios.create({ baseURL: API_URL, timeout: 10000 });
+const apiClient = axios.create({
+  baseURL: API_URL,
+  timeout: 10000,
+  withCredentials: true,
+});
+
+let onUnauthorizedCallback = null;
+export const setOnUnauthorizedCallback = (cb) => {
+  onUnauthorizedCallback = cb;
+};
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (
+      error.response?.status === 401 &&
+      error.config?.url !== "/auth/login" &&
+      error.config?.url !== "/auth/me"
+    ) {
+      if (typeof onUnauthorizedCallback === "function") {
+        onUnauthorizedCallback();
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
+export const authApi = {
+  login: (password) => apiClient.post("/auth/login", { password }),
+  logout: () => apiClient.post("/auth/logout"),
+  me: () => apiClient.get("/auth/me"),
+};
 
 export const categoryApi = {
   list: () => apiClient.get("/categories"),

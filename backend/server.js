@@ -9,8 +9,11 @@ const transactionRoutes = require('./routes/transactionRoutes');
 const accountRoutes = require('./routes/accountRoutes');
 const budgetRoutes = require('./routes/budgetRoutes');
 const reportRoutes = require('./routes/reportRoutes');
+const authRoutes = require('./routes/authRoutes');
+const { requireAuth } = require('./middleware/authMiddleware');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 const db = require('./config/db.js');
+const cookieParser = require('cookie-parser');
 
 const app = express();
 const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
@@ -24,7 +27,16 @@ const apiLimiter = rateLimit({
     message: { success: false, message: 'Too many requests, please try again later.' }
 });
 
-app.use(cors({ origin: allowedOrigins }));
+app.use(cors({
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+        return callback(new Error('Origin không được phép truy cập theo chính sách CORS.'));
+    },
+    credentials: true,
+}));
+app.use(cookieParser());
 app.use(express.json({ limit: '100kb' }));
 
 app.get('/', (req, res) => {
@@ -40,11 +52,14 @@ app.get('/health', async (req, res) => {
 });
 
 app.use('/api', apiLimiter);
-app.use('/api/accounts', accountRoutes);
-app.use('/api/categories', categoryRoutes);
-app.use('/api/transactions', transactionRoutes);
-app.use('/api/budgets', budgetRoutes);
-app.use('/api/reports', reportRoutes);
+app.use('/api/auth', authRoutes);
+
+// Tất cả tài nguyên nghiệp vụ được bảo vệ bởi phiên đăng nhập (SPEC 5.1 & 10)
+app.use('/api/accounts', requireAuth, accountRoutes);
+app.use('/api/categories', requireAuth, categoryRoutes);
+app.use('/api/transactions', requireAuth, transactionRoutes);
+app.use('/api/budgets', requireAuth, budgetRoutes);
+app.use('/api/reports', requireAuth, reportRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

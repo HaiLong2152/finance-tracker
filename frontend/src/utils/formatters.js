@@ -33,3 +33,7 @@ export const getLocalDateString = (d = new Date()) => {
   return `${year}-${month}-${day}`;
 };
 
+export const getCurrentMonth = (d = new Date()) => {
+  return getLocalDateString(d).slice(0, 7);
+};
+

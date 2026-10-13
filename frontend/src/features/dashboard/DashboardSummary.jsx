@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { formatMoney, formatAccountType } from "../../utils/formatters";
+import { formatMoney, formatAccountType, getCurrentMonth } from "../../utils/formatters";
 import CategoryPieChart from "./CategoryPieChart";
 import TrendBarChart from "./TrendBarChart";
 
@@ -20,13 +20,18 @@ function DashboardSummary({
   reportSummary = null,
   trendData = [],
 }) {
-  const availableMonths = useMemo(() => [
-    ...new Set(
+  const currentMonth = useMemo(() => getCurrentMonth(), []);
+
+  const availableMonths = useMemo(() => {
+    const months = new Set(
       transactions.map((transaction) =>
         String(transaction.transaction_date).slice(0, 7)
       )
-    ),
-  ].filter(Boolean).sort().reverse(), [transactions]);
+    );
+    if (currentMonth) months.add(currentMonth);
+    if (month) months.add(month);
+    return Array.from(months).filter(Boolean).sort().reverse();
+  }, [transactions, currentMonth, month]);
 
   const monthTransactions = useMemo(() => transactions.filter((transaction) => (
     !month || String(transaction.transaction_date).slice(0, 7) === month
@@ -87,7 +92,7 @@ function DashboardSummary({
         <article className="summary-card income-card">
           <span>Tổng thu</span>
           <strong>{formatMoney(income)}</strong>
-          {comparison && comparison.income_pct_change !== null && (
+          {Boolean(month) && comparison && comparison.income_pct_change !== null && (
             <small className={`compare-tag ${comparison.income_pct_change >= 0 ? "compare-pos" : "compare-neg"}`}>
               {comparison.income_pct_change >= 0 ? "▲ +" : "▼ "}
               {comparison.income_pct_change}% so với tháng trước
@@ -97,7 +102,7 @@ function DashboardSummary({
         <article className="summary-card expense-card">
           <span>Tổng chi</span>
           <strong>{formatMoney(expense)}</strong>
-          {comparison && comparison.expense_pct_change !== null && (
+          {Boolean(month) && comparison && comparison.expense_pct_change !== null && (
             <small className={`compare-tag ${comparison.expense_pct_change <= 0 ? "compare-pos" : "compare-danger"}`}>
               {comparison.expense_pct_change >= 0 ? "▲ +" : "▼ "}
               {comparison.expense_pct_change}% so với tháng trước
@@ -188,12 +193,12 @@ function DashboardSummary({
         <div className="section-heading">
           <div>
             <h2 id="budget-summary-title">Tiến độ ngân sách</h2>
-            {budgetsData && budgetsData.items.length > 0 ? (
+            {month && budgetsData && budgetsData.month === month && budgetsData.items.length > 0 ? (
               <span>
                 Đã dùng {formatMoney(budgetsData.total_spent)} / {formatMoney(budgetsData.total_budget)} ({budgetsData.overall_percentage}%)
               </span>
             ) : (
-              <span>Hạn mức chi tiêu tháng</span>
+              <span>Hạn mức chi tiêu theo tháng</span>
             )}
           </div>
           <Link to="/budgets" className="button-small button-secondary">
@@ -201,9 +206,21 @@ function DashboardSummary({
           </Link>
         </div>
 
-        {!budgetsData || budgetsData.items.length === 0 ? (
+        {!month ? (
+          <div className="empty-state">
+            <p>Ngân sách được theo dõi theo từng tháng cụ thể. Hãy chọn một tháng để theo dõi tiến độ chi tiêu.</p>
+            <button
+              type="button"
+              className="button-small"
+              style={{ marginTop: "10px", width: "auto", display: "inline-block" }}
+              onClick={() => onMonthChange(currentMonth)}
+            >
+              Xem tháng hiện tại ({formatMonth(currentMonth)})
+            </button>
+          </div>
+        ) : !budgetsData || budgetsData.month !== month || budgetsData.items.length === 0 ? (
           <p className="empty-state">
-            Chưa thiết lập ngân sách cho tháng này. <Link to="/budgets">Thiết lập ngay</Link>
+            Chưa thiết lập ngân sách cho {formatMonth(month)}. <Link to="/budgets">Thiết lập ngay</Link>
           </p>
         ) : (
           <div className="dashboard-budget-list">

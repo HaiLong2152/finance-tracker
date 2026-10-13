@@ -3,7 +3,7 @@ import { transactionApi, getApiErrorMessage } from "../services/api";
 import { useUI } from "./UIContext";
 import { useAccounts } from "./AccountContext";
 import { useBudgets } from "./BudgetContext";
-import { formatMoney, getLocalDateString } from "../utils/formatters";
+import { formatMoney, getLocalDateString, getCurrentMonth } from "../utils/formatters";
 
 const TransactionContext = createContext();
 
@@ -38,7 +38,7 @@ export function TransactionProvider({ children }) {
   const [editingId, setEditingId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [filters, setFilters] = useState(emptyFilters);
-  const [dashboardMonth, setDashboardMonth] = useState("");
+  const [dashboardMonth, setDashboardMonth] = useState(() => getCurrentMonth());
   const [currentPage, setCurrentPage] = useState(1);
 
   const { setError, setNotice, confirm } = useUI();

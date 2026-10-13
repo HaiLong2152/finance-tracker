@@ -22,13 +22,21 @@ function DashboardPage() {
     let isMounted = true;
     const loadReports = async () => {
       try {
-        const [sumRes, trendRes] = await Promise.all([
-          reportApi.getSummary(dashboardMonth || undefined),
-          reportApi.getTrend(6),
-        ]);
-        if (isMounted) {
-          setReportSummary(sumRes.data?.data || null);
-          setTrendData(trendRes.data?.data?.data || []);
+        if (dashboardMonth) {
+          const [sumRes, trendRes] = await Promise.all([
+            reportApi.getSummary(dashboardMonth),
+            reportApi.getTrend(6),
+          ]);
+          if (isMounted) {
+            setReportSummary(sumRes.data?.data || null);
+            setTrendData(trendRes.data?.data?.data || []);
+          }
+        } else {
+          const trendRes = await reportApi.getTrend(6);
+          if (isMounted) {
+            setReportSummary(null);
+            setTrendData(trendRes.data?.data?.data || []);
+          }
         }
       } catch (err) {
         console.error("Không thể tải dữ liệu báo cáo:", err);

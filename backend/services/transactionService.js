@@ -211,9 +211,70 @@ const deleteTransaction = async (id) => {
     return true;
 };
 
+const bulkAction = async (body) => {
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+        throw new AppError('Dữ liệu yêu cầu không hợp lệ.', 400);
+    }
+    const { transaction_ids, action, category_id } = body;
+
+    if (!Array.isArray(transaction_ids) || transaction_ids.length === 0) {
+        throw new AppError('Danh sách giao dịch không được để trống.', 400);
+    }
+
+    if (transaction_ids.length > 100) {
+        throw new AppError('Chỉ có thể thao tác tối đa 100 giao dịch mỗi lần.', 400);
+    }
+
+    const validIds = transaction_ids.map(Number);
+    if (validIds.some(id => !Number.isSafeInteger(id) || id <= 0)) {
+        throw new AppError('Danh sách mã giao dịch chứa giá trị không hợp lệ.', 400);
+    }
+
+    if (action === 'change_category') {
+        const numericCategoryId = Number(category_id);
+        if (!Number.isSafeInteger(numericCategoryId) || numericCategoryId <= 0) {
+            throw new AppError('Vui lòng chọn danh mục hợp lệ.', 400);
+        }
+        const category = await categoryRepository.findById(numericCategoryId);
+        if (!category) {
+            throw new AppError('Danh mục không tồn tại.', 404);
+        }
+
+        const existingTransactions = await transactionRepository.findByIds(validIds);
+        const hasTransfer = existingTransactions.some(t => t.type === 'transfer');
+        if (hasTransfer) {
+            throw new AppError('Không thể đổi danh mục cho giao dịch chuyển tiền nội bộ. Vui lòng bỏ chọn các giao dịch chuyển tiền.', 400);
+        }
+
+        const mismatchedType = existingTransactions.find(t => t.type !== category.type);
+        if (mismatchedType) {
+            const catTypeLabel = category.type === 'income' ? 'Thu nhập' : 'Chi tiêu';
+            const txTypeLabel = mismatchedType.type === 'income' ? 'Thu nhập' : 'Chi tiêu';
+            throw new AppError(`Danh mục '${category.name}' là danh mục ${catTypeLabel}, không thể áp dụng cho giao dịch ${txTypeLabel} (ID: ${mismatchedType.id}).`, 400);
+        }
+
+        const result = await transactionRepository.updateCategoryBulk(validIds, numericCategoryId);
+        return {
+            action: 'change_category',
+            affectedCount: result.affectedRows,
+            message: `Đã cập nhật danh mục "${category.name}" cho ${result.affectedRows} giao dịch.`
+        };
+    } else if (action === 'delete') {
+        const result = await transactionRepository.removeBulk(validIds);
+        return {
+            action: 'delete',
+            affectedCount: result.affectedRows,
+            message: `Đã xóa thành công ${result.affectedRows} giao dịch.`
+        };
+    } else {
+        throw new AppError('Hành động không hợp lệ (hỗ trợ: change_category, delete).', 400);
+    }
+};
+
 module.exports = {
     getAllTransactions,
     createTransaction,
     updateTransaction,
-    deleteTransaction
+    deleteTransaction,
+    bulkAction
 };

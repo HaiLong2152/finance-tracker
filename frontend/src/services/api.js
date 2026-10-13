@@ -25,6 +25,7 @@ export const transactionApi = {
   create: (payload) => apiClient.post("/transactions", payload),
   update: (id, payload) => apiClient.put(`/transactions/${id}`, payload),
   remove: (id) => apiClient.delete(`/transactions/${id}`),
+  bulk: (payload) => apiClient.post("/transactions/bulk", payload),
 };
 
 export const budgetApi = {
@@ -34,6 +35,12 @@ export const budgetApi = {
   update: (id, payload) => apiClient.put(`/budgets/${id}`, payload),
   remove: (id) => apiClient.delete(`/budgets/${id}`),
   copyPrevious: (payload) => apiClient.post("/budgets/copy-previous", payload),
+};
+
+export const reportApi = {
+  getSummary: (month) => apiClient.get("/reports/summary", { params: { month } }),
+  getByCategory: (month) => apiClient.get("/reports/by-category", { params: { month } }),
+  getTrend: (months = 6) => apiClient.get("/reports/trend", { params: { months } }),
 };
 
 export const getApiErrorMessage = (error, fallback) => {

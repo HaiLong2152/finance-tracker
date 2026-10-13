@@ -1,8 +1,11 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { formatMoney, formatAccountType } from "../../utils/formatters";
+import CategoryPieChart from "./CategoryPieChart";
+import TrendBarChart from "./TrendBarChart";
 
 const formatMonth = (month) => {
+  if (!month) return "";
   const [year, value] = month.split("-");
   return `Tháng ${Number(value)}/${year}`;
 };
@@ -14,6 +17,8 @@ function DashboardSummary({
   accounts = [],
   totalNetWorth = 0,
   budgetsData = null,
+  reportSummary = null,
+  trendData = [],
 }) {
   const availableMonths = useMemo(() => [
     ...new Set(
@@ -41,6 +46,18 @@ function DashboardSummary({
   const categoryAmounts = Object.entries(expenseCategories).sort(([, first], [, second]) => second - first);
   const largestExpense = categoryAmounts[0]?.[1] || 1;
 
+  // Chuẩn bị dữ liệu cho Biểu đồ tròn
+  const pieChartData = useMemo(() => {
+    return categoryAmounts.map(([name, amount]) => ({
+      category_name: name,
+      total_amount: amount,
+      percentage: expense > 0 ? Math.round((amount / expense) * 100) : 0,
+    }));
+  }, [categoryAmounts, expense]);
+
+  // So sánh tháng trước từ reportSummary
+  const comparison = reportSummary?.comparison;
+
   return (
     <>
       <section className="dashboard-toolbar">
@@ -65,25 +82,69 @@ function DashboardSummary({
         </label>
       </section>
 
+      {/* Thẻ tổng quan tài chính kèm so sánh tháng trước */}
       <section className="summary-grid" aria-label="Tổng quan tài chính">
         <article className="summary-card income-card">
           <span>Tổng thu</span>
           <strong>{formatMoney(income)}</strong>
+          {comparison && comparison.income_pct_change !== null && (
+            <small className={`compare-tag ${comparison.income_pct_change >= 0 ? "compare-pos" : "compare-neg"}`}>
+              {comparison.income_pct_change >= 0 ? "▲ +" : "▼ "}
+              {comparison.income_pct_change}% so với tháng trước
+            </small>
+          )}
         </article>
         <article className="summary-card expense-card">
           <span>Tổng chi</span>
           <strong>{formatMoney(expense)}</strong>
+          {comparison && comparison.expense_pct_change !== null && (
+            <small className={`compare-tag ${comparison.expense_pct_change <= 0 ? "compare-pos" : "compare-danger"}`}>
+              {comparison.expense_pct_change >= 0 ? "▲ +" : "▼ "}
+              {comparison.expense_pct_change}% so với tháng trước
+            </small>
+          )}
         </article>
         <article className="summary-card balance-card">
           <span>Thu - Chi</span>
           <strong className={income - expense >= 0 ? "positive" : "negative"}>
             {formatMoney(income - expense)}
           </strong>
+          {income > 0 && (
+            <small className="compare-tag compare-neutral">
+              Tỷ lệ tiết kiệm: {Math.max(0, Math.round(((income - expense) / income) * 100))}%
+            </small>
+          )}
         </article>
         <article className="summary-card count-card">
           <span>Số giao dịch</span>
           <strong>{monthTransactions.length}</strong>
         </article>
+      </section>
+
+      {/* Khu vực 2 Biểu đồ: Tỷ trọng Danh mục & Xu hướng 6 tháng */}
+      <section className="dashboard-charts-grid" aria-label="Biểu đồ trực quan">
+        <div className="panel chart-panel">
+          <div className="section-heading">
+            <div>
+              <h2>Tỷ trọng chi tiêu</h2>
+              <span>{month ? formatMonth(month) : "Toàn bộ thời gian"}</span>
+            </div>
+            {pieChartData.length > 0 && (
+              <span className="badge-stat">{pieChartData.length} danh mục</span>
+            )}
+          </div>
+          <CategoryPieChart data={pieChartData} />
+        </div>
+
+        <div className="panel chart-panel">
+          <div className="section-heading">
+            <div>
+              <h2>Xu hướng Thu & Chi</h2>
+              <span>6 tháng gần nhất</span>
+            </div>
+          </div>
+          <TrendBarChart data={trendData} />
+        </div>
       </section>
 
       {/* Widget số dư ví & tổng tài sản */}
@@ -173,9 +234,10 @@ function DashboardSummary({
         )}
       </section>
 
+      {/* Danh sách phân bổ chi tiết chi theo danh mục */}
       <section className="panel category-breakdown" aria-labelledby="breakdown-title">
         <div className="section-heading">
-          <h2 id="breakdown-title">Chi theo danh mục</h2>
+          <h2 id="breakdown-title">Chi tiết chi theo danh mục</h2>
           <span>{categoryAmounts.length} danh mục</span>
         </div>
         {categoryAmounts.length === 0 ? (

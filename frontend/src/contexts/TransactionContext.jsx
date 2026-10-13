@@ -209,6 +209,49 @@ export function TransactionProvider({ children }) {
     }
   };
 
+  const bulkChangeCategory = async (ids, categoryId) => {
+    if (!Array.isArray(ids) || ids.length === 0) return false;
+    setError("");
+    setNotice("");
+    try {
+      const response = await transactionApi.bulk({
+        transaction_ids: ids,
+        action: "change_category",
+        category_id: Number(categoryId),
+      });
+      setNotice(response.data?.message || `Đã cập nhật danh mục cho ${ids.length} giao dịch.`);
+      await Promise.all([fetchTransactions(), fetchAccounts(), fetchBudgets()]);
+      return true;
+    } catch (error) {
+      setError(getApiErrorMessage(error, "Không thể cập nhật danh mục hàng loạt."));
+      return false;
+    }
+  };
+
+  const bulkDelete = async (ids, totalAmount = 0) => {
+    if (!Array.isArray(ids) || ids.length === 0) return false;
+    const isConfirmed = await confirm(
+      "Xác nhận xóa hàng loạt",
+      `Bạn có chắc muốn xóa ${ids.length} giao dịch đã chọn${totalAmount > 0 ? ` (tổng cộng: ${formatMoney(totalAmount)})` : ""}?`
+    );
+    if (!isConfirmed) return false;
+
+    setError("");
+    setNotice("");
+    try {
+      const response = await transactionApi.bulk({
+        transaction_ids: ids,
+        action: "delete",
+      });
+      setNotice(response.data?.message || `Đã xóa thành công ${ids.length} giao dịch.`);
+      await Promise.all([fetchTransactions(), fetchAccounts(), fetchBudgets()]);
+      return true;
+    } catch (error) {
+      setError(getApiErrorMessage(error, "Không thể xóa giao dịch hàng loạt."));
+      return false;
+    }
+  };
+
   return (
     <TransactionContext.Provider
       value={{
@@ -225,6 +268,8 @@ export function TransactionProvider({ children }) {
         setEditingId,
         handleEdit,
         handleDelete,
+        bulkChangeCategory,
+        bulkDelete,
         filters,
         handleFilterChange,
         resetFilters,

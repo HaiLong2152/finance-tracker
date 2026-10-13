@@ -9,6 +9,9 @@ router.get('/', transactionController.getAllTransactions);
 // POST /api/transactions -> Thêm mới
 router.post('/', transactionController.createTransaction);
 
+// POST /api/transactions/bulk -> Thao tác hàng loạt (đổi danh mục, xóa)
+router.post('/bulk', transactionController.handleBulk);
+
 router.put('/:id', transactionController.updateTransaction);
 
 router.delete('/:id', transactionController.deleteTransaction);

@@ -12,7 +12,8 @@ function TransactionsPage() {
   const {
     formData, saving, editingId, handleChange, handleSubmit, resetForm,
     filters, handleFilterChange, resetFilters, paginatedTransactions, filteredTransactions,
-    loading, handleEdit, handleDelete, activePage, totalPages, setCurrentPage,
+    loading, handleEdit, handleDelete, bulkChangeCategory, bulkDelete,
+    activePage, totalPages, setCurrentPage,
   } = useTransactions();
 
   return (
@@ -43,8 +44,11 @@ function TransactionsPage() {
         transactions={paginatedTransactions}
         totalTransactions={filteredTransactions.length}
         loading={loading}
+        categories={categories}
         onEdit={handleEdit}
         onDelete={handleDelete}
+        onBulkChangeCategory={bulkChangeCategory}
+        onBulkDelete={bulkDelete}
       />
       <Pagination currentPage={activePage} totalPages={totalPages} onChange={setCurrentPage} />
     </>

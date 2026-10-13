@@ -36,4 +36,19 @@ const deleteTransaction = async (req, res, next) => {
     }
 };
 
-module.exports = { getAllTransactions, createTransaction, updateTransaction, deleteTransaction };
+const handleBulk = async (req, res, next) => {
+    try {
+        const result = await transactionService.bulkAction(req.body);
+        res.json({ success: true, message: result.message, data: result });
+    } catch (error) {
+        next(error);
+    }
+};
+
+module.exports = {
+    getAllTransactions,
+    createTransaction,
+    updateTransaction,
+    deleteTransaction,
+    handleBulk
+};

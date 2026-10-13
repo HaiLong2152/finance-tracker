@@ -86,10 +86,34 @@ const remove = async (id) => {
     return result;
 };
 
+const findByIds = async (ids) => {
+    if (!Array.isArray(ids) || ids.length === 0) return [];
+    const [rows] = await db.query('SELECT * FROM transactions WHERE id IN (?)', [ids]);
+    return rows;
+};
+
+const updateCategoryBulk = async (ids, categoryId) => {
+    if (!Array.isArray(ids) || ids.length === 0) return { affectedRows: 0 };
+    const [result] = await db.query(
+        'UPDATE transactions SET category_id = ? WHERE id IN (?) AND type IN (\'income\', \'expense\')',
+        [categoryId, ids]
+    );
+    return result;
+};
+
+const removeBulk = async (ids) => {
+    if (!Array.isArray(ids) || ids.length === 0) return { affectedRows: 0 };
+    const [result] = await db.query('DELETE FROM transactions WHERE id IN (?)', [ids]);
+    return result;
+};
+
 module.exports = {
     findAll,
     findById,
+    findByIds,
     create,
     update,
-    remove
+    remove,
+    updateCategoryBulk,
+    removeBulk
 };

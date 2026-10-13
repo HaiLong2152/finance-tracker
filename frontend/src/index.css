@@ -72,6 +72,9 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 .category-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid #edf1ee; border-radius: 10px; background: #fff; transition: all 0.15s ease; }
 .category-item:hover { background: #fafbfb; border-color: #cbd5e1; }
 .category-item-name { font-weight: 600; color: #1f2937; font-size: 14px; }
+.category-item-info { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cat-badge-budget { font-size: 11px; font-weight: 600; color: #1e40af; background: #dbeafe; padding: 2px 8px; border-radius: 99px; line-height: 1.2; }
+.cat-badge-tx { font-size: 11px; font-weight: 600; color: #374151; background: #f3f4f6; padding: 2px 8px; border-radius: 99px; line-height: 1.2; }
 .empty-hint { color: #9ca3af; font-size: 13px; text-align: center; padding: 24px 12px; margin: 0; }
 .category-breakdown { margin-top: 12px; }
 .breakdown-row { display: grid; gap: 7px; margin-top: 14px; }

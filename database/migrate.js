@@ -173,7 +173,7 @@ async function migrate() {
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       UNIQUE KEY uq_budgets_category_month (category_id, month),
       KEY idx_budgets_month (month),
-      FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE,
+      FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE RESTRICT,
       CONSTRAINT chk_budgets_amount CHECK (limit_amount > 0)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);

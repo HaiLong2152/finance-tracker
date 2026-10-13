@@ -45,14 +45,28 @@ const updateCategory = async (id, body) => {
 
 const deleteCategory = async (id) => {
     if (!Number.isSafeInteger(id) || id <= 0) throw new AppError('Mã danh mục không hợp lệ.', 400);
-    
+
+    const existing = await categoryRepository.findById(id);
+    if (!existing) throw new AppError('Không tìm thấy danh mục.', 404);
+
+    const usage = await categoryRepository.getUsageStats(id);
+    if (usage.transactionCount > 0) {
+        throw new AppError(`Không thể xóa danh mục '${existing.name}' vì đang có ${usage.transactionCount} giao dịch liên quan. Vui lòng chuyển các giao dịch sang danh mục khác trước khi xóa.`, 409);
+    }
+
     try {
-        const result = await categoryRepository.remove(id);
-        if (result.affectedRows === 0) throw new AppError('Không tìm thấy danh mục.', 404);
-        return true;
+        await categoryRepository.removeWithBudgets(id);
+        if (usage.budgetCount > 0) {
+            return {
+                message: `Đã xóa danh mục '${existing.name}' và ${usage.budgetCount} hạn mức ngân sách liên quan.`
+            };
+        }
+        return {
+            message: `Đã xóa danh mục '${existing.name}'.`
+        };
     } catch (error) {
         if (error.code === 'ER_ROW_IS_REFERENCED_2' || error.code === 'ER_ROW_IS_REFERENCED') {
-            throw new AppError('Không thể xóa danh mục đang có giao dịch.', 409);
+            throw new AppError('Không thể xóa danh mục do ràng buộc dữ liệu.', 409);
         }
         throw error;
     }

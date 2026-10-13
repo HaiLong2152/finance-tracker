@@ -29,8 +29,8 @@ const updateCategory = async (req, res, next) => {
 
 const deleteCategory = async (req, res, next) => {
     try {
-        await categoryService.deleteCategory(Number(req.params.id));
-        res.json({ success: true, message: 'Đã xóa danh mục.' });
+        const result = await categoryService.deleteCategory(Number(req.params.id));
+        res.json({ success: true, message: result?.message || 'Đã xóa danh mục.' });
     } catch (error) {
         next(error);
     }

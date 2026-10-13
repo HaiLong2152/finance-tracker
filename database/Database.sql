@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS budgets (
   UNIQUE KEY uq_budgets_category_month (category_id, month),
   KEY idx_budgets_month (month),
   CONSTRAINT fk_budgets_category
-    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE,
+    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE RESTRICT,
   CONSTRAINT chk_budgets_amount
     CHECK (limit_amount > 0)
 );

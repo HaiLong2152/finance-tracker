@@ -14,20 +14,23 @@ import { CategoryProvider, useCategories } from "./contexts/CategoryContext";
 import { AccountProvider, useAccounts } from "./contexts/AccountContext";
 import { TransactionProvider, useTransactions } from "./contexts/TransactionContext";
 import { BudgetProvider } from "./contexts/BudgetContext";
+import { ReportProvider, useReports } from "./contexts/ReportContext";
 
 function AppContent() {
   const { isAuthenticated, isChecking } = useAuth();
   const { fetchCategories } = useCategories();
   const { fetchAccounts } = useAccounts();
   const { fetchTransactions } = useTransactions();
+  const { refreshReports } = useReports();
 
   useEffect(() => {
     if (isAuthenticated) {
       fetchCategories();
       fetchAccounts();
       fetchTransactions();
+      refreshReports();
     }
-  }, [isAuthenticated, fetchCategories, fetchAccounts, fetchTransactions]);
+  }, [isAuthenticated, fetchCategories, fetchAccounts, fetchTransactions, refreshReports]);
 
   if (isChecking) {
     return (
@@ -64,9 +67,11 @@ function App() {
         <BudgetProvider>
           <CategoryProvider>
             <AccountProvider>
-              <TransactionProvider>
-                <AppContent />
-              </TransactionProvider>
+              <ReportProvider>
+                <TransactionProvider>
+                  <AppContent />
+                </TransactionProvider>
+              </ReportProvider>
             </AccountProvider>
           </CategoryProvider>
         </BudgetProvider>

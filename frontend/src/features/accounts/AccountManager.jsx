@@ -15,17 +15,12 @@ const emptyForm = {
   is_archived: false,
 };
 
-export default function AccountManager({
-  accounts: propAccounts,
-  loading: propLoading,
-  showArchived: propShowArchived,
-  onToggleArchived,
-}) {
+export default function AccountManager() {
   const {
-    accounts: ctxAccounts,
-    loading: ctxLoading,
-    saving: ctxSaving,
-    showArchived: ctxShowArchived,
+    accounts,
+    loading,
+    saving,
+    showArchived,
     toggleShowArchived,
     createAccount,
     updateAccount,
@@ -33,19 +28,11 @@ export default function AccountManager({
     deleteAccount,
   } = useAccounts();
 
-  const accounts = propAccounts ?? ctxAccounts;
-  const loading = propLoading ?? ctxLoading;
-  const showArchived = propShowArchived ?? ctxShowArchived;
-  const handleToggleArchived = onToggleArchived ?? toggleShowArchived;
-
   const [formData, setFormData] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
   const [editingEarliestTxDate, setEditingEarliestTxDate] = useState(null);
   const [editingTransactionCount, setEditingTransactionCount] = useState(0);
-  const [submitting, setSubmitting] = useState(false);
   const { setNotice, setError } = useUI();
-
-  const saving = ctxSaving || submitting;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -98,11 +85,9 @@ export default function AccountManager({
       is_archived: Boolean(formData.is_archived),
     };
 
-    setSubmitting(true);
     const success = editingId
       ? await updateAccount(editingId, payload)
       : await createAccount(payload);
-    setSubmitting(false);
 
     if (success) {
       setFormData(emptyForm);
@@ -243,7 +228,7 @@ export default function AccountManager({
             <input
               type="checkbox"
               checked={showArchived}
-              onChange={(e) => handleToggleArchived(e.target.checked)}
+              onChange={(e) => toggleShowArchived(e.target.checked)}
             />
             Hiện ví đã lưu trữ (Archived)
           </label>

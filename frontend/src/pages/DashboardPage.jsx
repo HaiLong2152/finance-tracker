@@ -1,68 +1,26 @@
-import { useEffect, useState } from "react";
-import { useTransactions } from "../contexts/TransactionContext";
+import { useEffect } from "react";
 import { useAccounts } from "../contexts/AccountContext";
 import { useBudgets } from "../contexts/BudgetContext";
-import { reportApi } from "../services/api";
+import { useReports } from "../contexts/ReportContext";
 import DashboardSummary from "../features/dashboard/DashboardSummary";
 
 function DashboardPage() {
-  const { dashboardMonth, setDashboardMonth, transactionVersion } = useTransactions();
   const { activeAccounts, totalNetWorth } = useAccounts();
   const { budgetsData, fetchBudgets } = useBudgets();
-  const [reportSummary, setReportSummary] = useState(null);
-  const [categoryBreakdown, setCategoryBreakdown] = useState([]);
-  const [trendData, setTrendData] = useState([]);
-  const [availableMonths, setAvailableMonths] = useState([]);
+  const {
+    reportMonth,
+    setReportMonth,
+    reportSummary,
+    categoryBreakdown,
+    trendData,
+    availableMonths,
+  } = useReports();
 
   useEffect(() => {
-    if (dashboardMonth) {
-      fetchBudgets(dashboardMonth);
+    if (reportMonth) {
+      fetchBudgets(reportMonth);
     }
-  }, [dashboardMonth, transactionVersion, fetchBudgets]);
-
-  // Tải danh sách các tháng có dữ liệu giao dịch
-  useEffect(() => {
-    let isMounted = true;
-    reportApi.getMonths()
-      .then((res) => {
-        if (isMounted) {
-          setAvailableMonths(res.data?.data || []);
-        }
-      })
-      .catch((err) => {
-        console.error("Không thể tải danh sách tháng:", err);
-      });
-    return () => {
-      isMounted = false;
-    };
-  }, [transactionVersion]);
-
-  // Tải báo cáo thu chi và phân bổ danh mục theo tháng
-  useEffect(() => {
-    let isMounted = true;
-    const loadReports = async () => {
-      try {
-        const targetPeriod = dashboardMonth || "all";
-        const [sumRes, catRes, trendRes] = await Promise.all([
-          reportApi.getSummary(targetPeriod),
-          reportApi.getByCategory(targetPeriod),
-          reportApi.getTrend(6),
-        ]);
-        if (isMounted) {
-          setReportSummary(sumRes.data?.data || null);
-          setCategoryBreakdown(catRes.data?.data?.items || []);
-          setTrendData(trendRes.data?.data?.data || []);
-        }
-      } catch (err) {
-        console.error("Không thể tải dữ liệu báo cáo:", err);
-      }
-    };
-
-    loadReports();
-    return () => {
-      isMounted = false;
-    };
-  }, [dashboardMonth, transactionVersion]);
+  }, [reportMonth, fetchBudgets]);
 
   return (
     <>
@@ -72,8 +30,8 @@ function DashboardPage() {
         <p className="subtitle">Theo dõi tình hình tài chính của bạn theo từng tháng.</p>
       </header>
       <DashboardSummary
-        month={dashboardMonth}
-        onMonthChange={setDashboardMonth}
+        month={reportMonth}
+        onMonthChange={setReportMonth}
         availableMonths={availableMonths}
         accounts={activeAccounts}
         totalNetWorth={totalNetWorth}

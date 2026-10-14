@@ -3,7 +3,8 @@ import { transactionApi, getApiErrorMessage } from "../services/api";
 import { useUI } from "./UIContext";
 import { useAccounts } from "./AccountContext";
 import { useBudgets } from "./BudgetContext";
-import { formatMoney, getLocalDateString, getCurrentMonth } from "../utils/formatters";
+import { useReports } from "./ReportContext";
+import { formatMoney, getLocalDateString } from "../utils/formatters";
 
 const TransactionContext = createContext();
 
@@ -41,12 +42,11 @@ export function TransactionProvider({ children }) {
   const [editingId, setEditingId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [filters, setFilters] = useState(emptyFilters);
-  const [dashboardMonth, setDashboardMonth] = useState(() => getCurrentMonth());
-  const [transactionVersion, setTransactionVersion] = useState(0);
 
   const { setError, setNotice, confirm } = useUI();
   const { fetchAccounts } = useAccounts();
   const { fetchBudgets } = useBudgets();
+  const { refreshReports } = useReports();
 
   const currentPageRef = useRef(currentPage);
   const filtersRef = useRef(filters);
@@ -109,9 +109,13 @@ export function TransactionProvider({ children }) {
   }, [setError]);
 
   const refreshAfterMutation = useCallback(async () => {
-    setTransactionVersion((v) => v + 1);
-    await Promise.all([fetchTransactions(), fetchAccounts(), fetchBudgets()]);
-  }, [fetchTransactions, fetchAccounts, fetchBudgets]);
+    await Promise.all([
+      fetchTransactions(),
+      fetchAccounts(),
+      fetchBudgets(),
+      refreshReports(),
+    ]);
+  }, [fetchTransactions, fetchAccounts, fetchBudgets, refreshReports]);
 
   const createTransaction = async (payload) => {
     const response = await transactionApi.create(payload);
@@ -307,7 +311,6 @@ export function TransactionProvider({ children }) {
         fetchTransactions,
         createTransaction,
         refreshAfterMutation,
-        transactionVersion,
         formData,
         editingId,
         saving,
@@ -323,8 +326,6 @@ export function TransactionProvider({ children }) {
         filters,
         handleFilterChange,
         resetFilters,
-        dashboardMonth,
-        setDashboardMonth,
         activePage: currentPage,
         currentPage,
         totalPages,

@@ -1,24 +1,19 @@
 import { useState, useMemo, useRef } from "react";
 import { useCategories } from "../../contexts/CategoryContext";
 
-function CategoryManager({ categories: propCategories }) {
+function CategoryManager() {
   const {
-    categories: ctxCategories,
-    saving: ctxSaving,
+    categories,
+    saving,
     createCategory,
     updateCategory,
     deleteCategory,
   } = useCategories();
 
-  const categories = propCategories ?? ctxCategories;
-
   const [currentType, setCurrentType] = useState("expense"); // "expense" | "income"
   const [categoryName, setCategoryName] = useState("");
   const [editingId, setEditingId] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
   const inputRef = useRef(null);
-
-  const saving = ctxSaving || submitting;
 
   const expenseCount = useMemo(
     () => categories.filter((c) => c.type === "expense").length,
@@ -39,11 +34,9 @@ function CategoryManager({ categories: propCategories }) {
     const trimmed = categoryName.trim();
     if (!trimmed) return;
 
-    setSubmitting(true);
     const success = editingId
       ? await updateCategory(editingId, { name: trimmed, type: currentType })
       : await createCategory({ name: trimmed, type: currentType });
-    setSubmitting(false);
 
     if (success) {
       setCategoryName("");

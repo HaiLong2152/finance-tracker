@@ -182,7 +182,13 @@ function CategoryManager({ categories: propCategories }) {
                     type="button"
                     className="button-small button-danger"
                     onClick={() => handleRemove(cat)}
-                    title={Number(cat.transaction_count) > 0 ? "Không thể xóa danh mục đang có giao dịch" : ""}
+                    title={
+                      Number(cat.transaction_count) > 0
+                        ? "Không thể xóa danh mục đang có giao dịch"
+                        : Number(cat.budget_count) > 0
+                        ? `Xóa danh mục sẽ đồng thời xóa ${cat.budget_count} hạn mức ngân sách liên quan`
+                        : "Xóa danh mục"
+                    }
                   >
                     Xóa
                   </button>

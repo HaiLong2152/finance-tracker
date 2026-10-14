@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const { toBigInt, toSafeNumber, calculatePercentage } = require('../utils/money');
 
 /**
  * Lấy tổng hợp thu, chi, chênh lệch của một tháng
@@ -15,12 +16,13 @@ const getMonthlySummary = async (month) => {
           AND type IN ('income', 'expense')
     `;
     const [[row]] = await db.query(sql, [month, month]);
-    const income = Number(row.income);
-    const expense = Number(row.expense);
+    const incomeBig = toBigInt(row.income);
+    const expenseBig = toBigInt(row.expense);
+    const netBig = incomeBig - expenseBig;
     return {
-        income,
-        expense,
-        net: income - expense,
+        income: toSafeNumber(incomeBig, 'Tổng thu nhập'),
+        expense: toSafeNumber(expenseBig, 'Tổng chi tiêu'),
+        net: toSafeNumber(netBig, 'Chênh lệch thu chi'),
         transaction_count: Number(row.transaction_count)
     };
 };
@@ -45,15 +47,15 @@ const getCategoryBreakdown = async (month) => {
         ORDER BY total_amount DESC
     `;
     const [rows] = await db.query(sql, [month, month]);
-    const totalExpense = rows.reduce((sum, r) => sum + Number(r.total_amount), 0);
+    const totalExpenseBig = rows.reduce((sum, r) => sum + toBigInt(r.total_amount), 0n);
 
     return rows.map(r => {
-        const amount = Number(r.total_amount);
-        const percentage = totalExpense > 0 ? Math.round((amount / totalExpense) * 100) : 0;
+        const amountBig = toBigInt(r.total_amount);
+        const percentage = calculatePercentage(amountBig, totalExpenseBig);
         return {
             category_id: r.category_id,
             category_name: r.category_name,
-            total_amount: amount,
+            total_amount: toSafeNumber(amountBig, 'Tổng chi tiêu danh mục'),
             transaction_count: Number(r.transaction_count),
             percentage
         };
@@ -77,12 +79,17 @@ const getTrendData = async (startMonth, endMonth) => {
         ORDER BY month ASC
     `;
     const [rows] = await db.query(sql, [startMonth, endMonth]);
-    return rows.map(r => ({
-        month: r.month,
-        income: Number(r.income),
-        expense: Number(r.expense),
-        net: Number(r.income) - Number(r.expense)
-    }));
+    return rows.map(r => {
+        const incomeBig = toBigInt(r.income);
+        const expenseBig = toBigInt(r.expense);
+        const netBig = incomeBig - expenseBig;
+        return {
+            month: r.month,
+            income: toSafeNumber(incomeBig, 'Thu nhập xu hướng'),
+            expense: toSafeNumber(expenseBig, 'Chi tiêu xu hướng'),
+            net: toSafeNumber(netBig, 'Chênh lệch xu hướng')
+        };
+    });
 };
 
 /**
@@ -98,12 +105,13 @@ const getAllTimeSummary = async () => {
         WHERE type IN ('income', 'expense')
     `;
     const [[row]] = await db.query(sql);
-    const income = Number(row.income);
-    const expense = Number(row.expense);
+    const incomeBig = toBigInt(row.income);
+    const expenseBig = toBigInt(row.expense);
+    const netBig = incomeBig - expenseBig;
     return {
-        income,
-        expense,
-        net: income - expense,
+        income: toSafeNumber(incomeBig, 'Tổng thu nhập toàn thời gian'),
+        expense: toSafeNumber(expenseBig, 'Tổng chi tiêu toàn thời gian'),
+        net: toSafeNumber(netBig, 'Chênh lệch toàn thời gian'),
         transaction_count: Number(row.transaction_count)
     };
 };
@@ -126,15 +134,15 @@ const getAllTimeCategoryBreakdown = async () => {
         ORDER BY total_amount DESC
     `;
     const [rows] = await db.query(sql);
-    const totalExpense = rows.reduce((sum, r) => sum + Number(r.total_amount), 0);
+    const totalExpenseBig = rows.reduce((sum, r) => sum + toBigInt(r.total_amount), 0n);
 
     return rows.map(r => {
-        const amount = Number(r.total_amount);
-        const percentage = totalExpense > 0 ? Math.round((amount / totalExpense) * 100) : 0;
+        const amountBig = toBigInt(r.total_amount);
+        const percentage = calculatePercentage(amountBig, totalExpenseBig);
         return {
             category_id: r.category_id,
             category_name: r.category_name,
-            total_amount: amount,
+            total_amount: toSafeNumber(amountBig, 'Tổng chi tiêu danh mục toàn thời gian'),
             transaction_count: Number(r.transaction_count),
             percentage
         };

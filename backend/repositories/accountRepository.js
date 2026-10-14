@@ -1,4 +1,14 @@
 const db = require('../config/db');
+const { toBigInt, toSafeNumber } = require('../utils/money');
+
+const mapAccountRow = (row) => {
+    if (!row) return null;
+    return {
+        ...row,
+        initial_balance: toSafeNumber(toBigInt(row.initial_balance), 'Số dư ban đầu'),
+        current_balance: toSafeNumber(toBigInt(row.current_balance), 'Số dư hiện tại')
+    };
+};
 
 /**
  * Lấy danh sách ví (có tính toán số dư hiện tại từ các giao dịch)
@@ -38,7 +48,7 @@ const findAll = async (includeArchived = false) => {
         ORDER BY a.sort_order ASC, a.id ASC
     `;
     const [rows] = await db.query(sql);
-    return rows;
+    return rows.map(mapAccountRow);
 };
 
 /**
@@ -77,7 +87,7 @@ const findById = async (id) => {
         GROUP BY a.id
     `;
     const [rows] = await db.query(sql, [id]);
-    return rows[0];
+    return mapAccountRow(rows[0]);
 };
 
 /**

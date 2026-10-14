@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const { toBigInt, toSafeNumber, calculatePercentage } = require('../utils/money');
 
 /**
  * Lấy danh sách ngân sách trong một tháng (kèm số tiền chi tiêu thực tế)
@@ -32,12 +33,12 @@ const findByMonth = async (month) => {
     `;
     const [rows] = await db.query(sql, [month, month, month]);
     return rows.map((row) => {
-        const limit = Number(row.limit_amount);
-        const spent = Number(row.spent_amount);
-        const remaining = limit - spent;
-        const percentage = limit > 0 ? Math.round((spent / limit) * 100) : 0;
+        const limitBig = toBigInt(row.limit_amount);
+        const spentBig = toBigInt(row.spent_amount);
+        const remainingBig = limitBig - spentBig;
+        const percentage = calculatePercentage(spentBig, limitBig);
         let status = 'safe';
-        if (spent >= limit) {
+        if (spentBig >= limitBig) {
             status = 'exceeded';
         } else if (percentage >= 80) {
             status = 'warning';
@@ -49,9 +50,9 @@ const findByMonth = async (month) => {
             category_name: row.category_name,
             category_type: row.category_type,
             month: row.month,
-            limit_amount: limit,
-            spent_amount: spent,
-            remaining_amount: remaining,
+            limit_amount: toSafeNumber(limitBig, 'Hạn mức ngân sách'),
+            spent_amount: toSafeNumber(spentBig, 'Số tiền đã chi'),
+            remaining_amount: toSafeNumber(remainingBig, 'Số tiền còn lại'),
             percentage,
             status,
             created_at: row.created_at,
@@ -97,12 +98,12 @@ const findById = async (id) => {
     if (!rows[0]) return null;
 
     const row = rows[0];
-    const limit = Number(row.limit_amount);
-    const spent = Number(row.spent_amount);
-    const remaining = limit - spent;
-    const percentage = limit > 0 ? Math.round((spent / limit) * 100) : 0;
+    const limitBig = toBigInt(row.limit_amount);
+    const spentBig = toBigInt(row.spent_amount);
+    const remainingBig = limitBig - spentBig;
+    const percentage = calculatePercentage(spentBig, limitBig);
     let status = 'safe';
-    if (spent >= limit) {
+    if (spentBig >= limitBig) {
         status = 'exceeded';
     } else if (percentage >= 80) {
         status = 'warning';
@@ -114,9 +115,9 @@ const findById = async (id) => {
         category_name: row.category_name,
         category_type: row.category_type,
         month: row.month,
-        limit_amount: limit,
-        spent_amount: spent,
-        remaining_amount: remaining,
+        limit_amount: toSafeNumber(limitBig, 'Hạn mức ngân sách'),
+        spent_amount: toSafeNumber(spentBig, 'Số tiền đã chi'),
+        remaining_amount: toSafeNumber(remainingBig, 'Số tiền còn lại'),
         percentage,
         status,
         created_at: row.created_at,

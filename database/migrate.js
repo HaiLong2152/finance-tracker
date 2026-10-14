@@ -177,6 +177,19 @@ async function migrate() {
       CONSTRAINT chk_budgets_amount CHECK (limit_amount > 0)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);
+
+  // Đảm bảo foreign key fk_budgets_category là ON DELETE RESTRICT nếu trước đó đã tạo với ON DELETE CASCADE
+  const [budgetFks] = await db.query(`
+    SELECT CONSTRAINT_NAME, DELETE_RULE 
+    FROM information_schema.REFERENTIAL_CONSTRAINTS 
+    WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'budgets' AND CONSTRAINT_NAME = 'fk_budgets_category'
+  `);
+  if (budgetFks.length > 0 && budgetFks[0].DELETE_RULE !== 'RESTRICT') {
+    await db.query(`ALTER TABLE budgets DROP FOREIGN KEY fk_budgets_category`);
+    await db.query(`ALTER TABLE budgets ADD CONSTRAINT fk_budgets_category FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE RESTRICT`);
+    console.log('✓ Đã cập nhật foreign key fk_budgets_category sang ON DELETE RESTRICT.');
+  }
+
   console.log('✓ Bảng budgets đã sẵn sàng.');
 
   console.log('=== Migration hoàn tất thành công 100%! ===');

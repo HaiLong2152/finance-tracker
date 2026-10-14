@@ -12,6 +12,7 @@ const reportRoutes = require('./routes/reportRoutes');
 const authRoutes = require('./routes/authRoutes');
 const { requireAuth } = require('./middleware/authMiddleware');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
+const { validateAuthConfig } = require('./services/authService');
 const db = require('./config/db.js');
 const cookieParser = require('cookie-parser');
 
@@ -110,12 +111,16 @@ process.on('SIGINT', () => gracefulShutdown(0));
 
 const startServer = async () => {
     try {
+        // Kiểm tra cấu hình bảo mật bắt buộc trước khi mở cổng
+        validateAuthConfig();
+
         await db.testConnection();
         server = app.listen(PORT, () => {
             console.log(`Server đang chạy tại http://localhost:${PORT}`);
         });
     } catch (error) {
-        console.error('Không thể khởi động server do lỗi kết nối Database.');
+        console.error('Không thể khởi động server:');
+        console.error(error.message);
         process.exit(1);
     }
 };

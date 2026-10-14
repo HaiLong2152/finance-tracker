@@ -41,6 +41,7 @@ export default function AccountManager({
   const [formData, setFormData] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
   const [editingEarliestTxDate, setEditingEarliestTxDate] = useState(null);
+  const [editingTransactionCount, setEditingTransactionCount] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const { setNotice, setError } = useUI();
 
@@ -54,6 +55,7 @@ export default function AccountManager({
   const startEdit = (acc) => {
     setEditingId(acc.id);
     setEditingEarliestTxDate(acc.earliest_transaction_date ? String(acc.earliest_transaction_date).slice(0, 10) : null);
+    setEditingTransactionCount(Number(acc.transaction_count || 0));
     setFormData({
       name: acc.name,
       type: acc.type,
@@ -71,6 +73,7 @@ export default function AccountManager({
   const cancelEdit = () => {
     setEditingId(null);
     setEditingEarliestTxDate(null);
+    setEditingTransactionCount(0);
     setFormData(emptyForm);
     setError("");
   };
@@ -172,14 +175,19 @@ export default function AccountManager({
                 name="start_date"
                 value={formData.start_date}
                 onChange={handleChange}
+                disabled={editingTransactionCount > 0}
                 max={editingEarliestTxDate || undefined}
                 required
               />
-              {editingEarliestTxDate && (
+              {editingTransactionCount > 0 ? (
+                <small className="field-hint warning">
+                  Ví đã có {editingTransactionCount} giao dịch. Không thể sửa ngày bắt đầu theo dõi để tránh làm thay đổi số dư hồi tố.
+                </small>
+              ) : editingEarliestTxDate ? (
                 <small className="field-hint warning">
                   Ví đã có giao dịch từ ngày {formatDate(editingEarliestTxDate)}. Ngày bắt đầu không thể sau ngày này.
                 </small>
-              )}
+              ) : null}
             </label>
 
             <label>

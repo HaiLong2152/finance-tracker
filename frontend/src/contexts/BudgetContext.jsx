@@ -36,6 +36,10 @@ export function BudgetProvider({ children }) {
     try {
       const response = await budgetApi.list(targetMonth);
       setBudgetsData(response.data.data || initialBudgetData);
+      if (month && month !== selectedMonthRef.current) {
+        selectedMonthRef.current = month;
+        setSelectedMonth(month);
+      }
     } catch (error) {
       setError(getApiErrorMessage(error, "Không thể tải thông tin ngân sách."));
     } finally {
@@ -122,10 +126,11 @@ export function BudgetProvider({ children }) {
     }
   };
 
-  const handleMonthChange = (newMonth) => {
+  const handleMonthChange = useCallback((newMonth) => {
     setSelectedMonth(newMonth);
+    selectedMonthRef.current = newMonth;
     fetchBudgets(newMonth);
-  };
+  }, [fetchBudgets]);
 
   return (
     <BudgetContext.Provider

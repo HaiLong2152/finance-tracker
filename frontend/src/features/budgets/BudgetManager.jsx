@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useBudgets } from "../../contexts/BudgetContext";
 import { useCategories } from "../../contexts/CategoryContext";
 import { formatMoney } from "../../utils/formatters";
@@ -25,6 +25,7 @@ function BudgetManager() {
     setSelectedMonth,
     budgetsData,
     loading,
+    fetchBudgets,
     saveBudget,
     updateBudget,
     deleteBudget,
@@ -35,6 +36,13 @@ function BudgetManager() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState(null);
+
+  // Đảm bảo dữ liệu ngân sách luôn đồng bộ chính xác với tháng đang chọn
+  useEffect(() => {
+    if (budgetsData.month && budgetsData.month !== selectedMonth) {
+      fetchBudgets(selectedMonth);
+    }
+  }, [selectedMonth, budgetsData.month, fetchBudgets]);
 
   // Lọc các danh mục chi tiêu chưa được đặt hạn mức trong tháng này
   const unbudgetedCategories = useMemo(() => {

@@ -17,7 +17,7 @@ const parseAccount = (body, existing = null) => {
 
     const {
         name,
-        type = 'cash',
+        type = existing ? existing.type : 'cash',
         initial_balance,
         start_date,
         identifier_hint,
@@ -25,7 +25,7 @@ const parseAccount = (body, existing = null) => {
         sort_order
     } = body;
 
-    const trimmedName = typeof name === 'string' ? name.trim() : '';
+    const trimmedName = typeof name === 'string' ? name.trim() : (existing ? existing.name : '');
     if (trimmedName.length < 1 || trimmedName.length > 100) {
         throw new AppError('Tên ví phải có từ 1 đến 100 ký tự.', 400);
     }
@@ -34,10 +34,15 @@ const parseAccount = (body, existing = null) => {
         throw new AppError('Loại ví không hợp lệ (hỗ trợ: cash, bank, ewallet, other).', 400);
     }
 
-    const numericInitialBalance = parseInteger(initial_balance, 'Số dư ban đầu', 0);
+    const numericInitialBalance = initial_balance !== undefined && initial_balance !== null && initial_balance !== ''
+        ? parseInteger(initial_balance, 'Số dư ban đầu', 0)
+        : (existing ? Number(existing.initial_balance || 0) : 0);
 
-    // Mặc định ngày hiện tại theo múi giờ Việt Nam (UTC+7) để tránh lệch ngày vào rạng sáng 00:00 - 07:00
-    let resolvedStartDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
+    // Mặc định ngày của existing (khi update) hoặc ngày hiện tại theo múi giờ Việt Nam (UTC+7)
+    let resolvedStartDate = existing?.start_date
+        ? String(existing.start_date).slice(0, 10)
+        : new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
+
     if (start_date !== undefined && start_date !== null && start_date !== '') {
         if (!isValidDate(start_date)) {
             throw new AppError('Ngày bắt đầu theo dõi không hợp lệ.', 400);
@@ -45,7 +50,7 @@ const parseAccount = (body, existing = null) => {
         resolvedStartDate = start_date;
     }
 
-    let resolvedHint = null;
+    let resolvedHint = existing ? (existing.identifier_hint || null) : null;
     if (typeof identifier_hint === 'string') {
         const hintTrimmed = identifier_hint.trim();
         if (hintTrimmed.length > 100) {
@@ -54,7 +59,9 @@ const parseAccount = (body, existing = null) => {
         resolvedHint = hintTrimmed || null;
     }
 
-    const resolvedSortOrder = parseInteger(sort_order, 'Thứ tự sắp xếp', 0);
+    const resolvedSortOrder = sort_order !== undefined && sort_order !== null && sort_order !== ''
+        ? parseInteger(sort_order, 'Thứ tự sắp xếp', 0)
+        : (existing ? Number(existing.sort_order || 0) : 0);
 
     let resolvedIsArchived = false;
     if (is_archived !== undefined) {
@@ -111,9 +118,20 @@ const updateAccount = async (id, body) => {
         throw new AppError('Không tìm thấy ví.', 404);
     }
 
+    const txCount = await accountRepository.countTransactions(id);
+    const existingStartDate = existing.start_date ? String(existing.start_date).slice(0, 10) : null;
     const parsed = parseAccount(body, existing);
 
-    // Kiểm tra tính toàn vẹn số dư: Ngày bắt đầu không thể muộn hơn ngày giao dịch sớm nhất của ví
+    // Kiểm tra tính toàn vẹn số dư:
+    // 1. Không cho phép sửa đổi ngày bắt đầu theo dõi nếu ví đã có giao dịch phát sinh
+    if (txCount > 0 && parsed.startDate !== existingStartDate) {
+        throw new AppError(
+            `Ví '${existing.name}' đã có ${txCount} giao dịch. Không thể thay đổi ngày bắt đầu theo dõi để tránh làm thay đổi số dư hồi tố.`,
+            400
+        );
+    }
+
+    // 2. Phòng vệ bổ sung: Ngày bắt đầu không thể muộn hơn ngày giao dịch sớm nhất của ví
     const earliestTxDate = await accountRepository.getEarliestTransactionDate(id);
     if (earliestTxDate && parsed.startDate > earliestTxDate) {
         throw new AppError(

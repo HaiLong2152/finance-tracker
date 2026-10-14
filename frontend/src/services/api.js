@@ -69,8 +69,8 @@ export const budgetApi = {
 };
 
 export const reportApi = {
-  getSummary: (month) => apiClient.get("/reports/summary", { params: { month: month || undefined } }),
-  getByCategory: (month) => apiClient.get("/reports/by-category", { params: { month: month || undefined } }),
+  getSummary: (month) => apiClient.get("/reports/summary", { params: { month: month || "all" } }),
+  getByCategory: (month) => apiClient.get("/reports/by-category", { params: { month: month || "all" } }),
   getTrend: (months = 6) => apiClient.get("/reports/trend", { params: { months } }),
   getMonths: () => apiClient.get("/reports/months"),
 };

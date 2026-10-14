@@ -25,17 +25,19 @@ const validateMonth = (month) => {
 };
 
 const getSummary = async (monthQuery) => {
-    if (!monthQuery || monthQuery === 'all') {
+    // Nếu client chỉ định xem toàn bộ thời gian qua month=all hoặc month=""
+    if (monthQuery === 'all' || monthQuery === '') {
         const current = await reportRepository.getAllTimeSummary();
         return {
-            month: '',
+            month: 'all',
             current,
             previous: null,
             comparison: null
         };
     }
 
-    const month = validateMonth(monthQuery);
+    // Nếu không truyền tham số month (undefined/null), mặc định là tháng hiện tại theo SPEC 5.7 & 10
+    const month = monthQuery ? validateMonth(monthQuery) : getCurrentMonth();
     const prevMonth = getPreviousMonth(month);
 
     const [current, previous] = await Promise.all([
@@ -69,17 +71,19 @@ const getSummary = async (monthQuery) => {
 };
 
 const getByCategory = async (monthQuery) => {
-    if (!monthQuery || monthQuery === 'all') {
+    // Nếu client chỉ định xem toàn bộ thời gian qua month=all hoặc month=""
+    if (monthQuery === 'all' || monthQuery === '') {
         const items = await reportRepository.getAllTimeCategoryBreakdown();
         const totalExpense = items.reduce((sum, item) => sum + item.total_amount, 0);
         return {
-            month: '',
+            month: 'all',
             total_expense: totalExpense,
             items
         };
     }
 
-    const month = validateMonth(monthQuery);
+    // Nếu không truyền tham số month (undefined/null), mặc định là tháng hiện tại theo SPEC 5.7 & 10
+    const month = monthQuery ? validateMonth(monthQuery) : getCurrentMonth();
     const items = await reportRepository.getCategoryBreakdown(month);
     const totalExpense = items.reduce((sum, item) => sum + item.total_amount, 0);
 

@@ -42,6 +42,7 @@ export function TransactionProvider({ children }) {
   const [saving, setSaving] = useState(false);
   const [filters, setFilters] = useState(emptyFilters);
   const [dashboardMonth, setDashboardMonth] = useState(() => getCurrentMonth());
+  const [transactionVersion, setTransactionVersion] = useState(0);
 
   const { setError, setNotice, confirm } = useUI();
   const { fetchAccounts } = useAccounts();
@@ -106,6 +107,17 @@ export function TransactionProvider({ children }) {
       setLoading(false);
     }
   }, [setError]);
+
+  const refreshAfterMutation = useCallback(async () => {
+    setTransactionVersion((v) => v + 1);
+    await Promise.all([fetchTransactions(), fetchAccounts(), fetchBudgets()]);
+  }, [fetchTransactions, fetchAccounts, fetchBudgets]);
+
+  const createTransaction = async (payload) => {
+    const response = await transactionApi.create(payload);
+    await refreshAfterMutation();
+    return response;
+  };
 
   // Debounce tìm kiếm văn bản 350ms trước khi gọi fetch
   const isFirstMount = useRef(true);
@@ -193,7 +205,7 @@ export function TransactionProvider({ children }) {
       }
 
       resetForm();
-      await Promise.all([fetchTransactions(), fetchAccounts(), fetchBudgets()]);
+      await refreshAfterMutation();
     } catch (error) {
       setError(getApiErrorMessage(error, "Không thể lưu giao dịch."));
     } finally {
@@ -235,7 +247,7 @@ export function TransactionProvider({ children }) {
       const response = await transactionApi.remove(transaction.id);
       if (editingId === transaction.id) resetForm();
       setNotice(response.data?.message || "Đã xóa giao dịch.");
-      await Promise.all([fetchTransactions(), fetchAccounts(), fetchBudgets()]);
+      await refreshAfterMutation();
     } catch (error) {
       setError(getApiErrorMessage(error, "Không thể xóa giao dịch."));
     }
@@ -252,7 +264,7 @@ export function TransactionProvider({ children }) {
         category_id: Number(categoryId),
       });
       setNotice(response.data?.message || `Đã cập nhật danh mục cho ${ids.length} giao dịch.`);
-      await Promise.all([fetchTransactions(), fetchAccounts(), fetchBudgets()]);
+      await refreshAfterMutation();
       return true;
     } catch (error) {
       setError(getApiErrorMessage(error, "Không thể cập nhật danh mục hàng loạt."));
@@ -276,7 +288,7 @@ export function TransactionProvider({ children }) {
         action: "delete",
       });
       setNotice(response.data?.message || `Đã xóa thành công ${ids.length} giao dịch.`);
-      await Promise.all([fetchTransactions(), fetchAccounts(), fetchBudgets()]);
+      await refreshAfterMutation();
       return true;
     } catch (error) {
       setError(getApiErrorMessage(error, "Không thể xóa giao dịch hàng loạt."));
@@ -293,6 +305,9 @@ export function TransactionProvider({ children }) {
         totalTransactions,
         loading,
         fetchTransactions,
+        createTransaction,
+        refreshAfterMutation,
+        transactionVersion,
         formData,
         editingId,
         saving,

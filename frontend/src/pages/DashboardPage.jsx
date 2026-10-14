@@ -6,7 +6,7 @@ import { reportApi } from "../services/api";
 import DashboardSummary from "../features/dashboard/DashboardSummary";
 
 function DashboardPage() {
-  const { dashboardMonth, setDashboardMonth } = useTransactions();
+  const { dashboardMonth, setDashboardMonth, transactionVersion } = useTransactions();
   const { activeAccounts, totalNetWorth } = useAccounts();
   const { budgetsData, fetchBudgets } = useBudgets();
   const [reportSummary, setReportSummary] = useState(null);
@@ -18,7 +18,7 @@ function DashboardPage() {
     if (dashboardMonth) {
       fetchBudgets(dashboardMonth);
     }
-  }, [dashboardMonth, fetchBudgets]);
+  }, [dashboardMonth, transactionVersion, fetchBudgets]);
 
   // Tải danh sách các tháng có dữ liệu giao dịch
   useEffect(() => {
@@ -35,16 +35,17 @@ function DashboardPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [transactionVersion]);
 
   // Tải báo cáo thu chi và phân bổ danh mục theo tháng
   useEffect(() => {
     let isMounted = true;
     const loadReports = async () => {
       try {
+        const targetPeriod = dashboardMonth || "all";
         const [sumRes, catRes, trendRes] = await Promise.all([
-          reportApi.getSummary(dashboardMonth),
-          reportApi.getByCategory(dashboardMonth),
+          reportApi.getSummary(targetPeriod),
+          reportApi.getByCategory(targetPeriod),
           reportApi.getTrend(6),
         ]);
         if (isMounted) {
@@ -61,7 +62,7 @@ function DashboardPage() {
     return () => {
       isMounted = false;
     };
-  }, [dashboardMonth]);
+  }, [dashboardMonth, transactionVersion]);
 
   return (
     <>

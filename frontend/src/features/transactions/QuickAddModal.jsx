@@ -2,16 +2,14 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAccounts } from "../../contexts/AccountContext";
 import { useCategories } from "../../contexts/CategoryContext";
 import { useTransactions } from "../../contexts/TransactionContext";
-import { useBudgets } from "../../contexts/BudgetContext";
 import { useUI } from "../../contexts/UIContext";
-import { transactionApi, getApiErrorMessage } from "../../services/api";
+import { getApiErrorMessage } from "../../services/api";
 import { formatMoney, formatAccountType, getLocalDateString } from "../../utils/formatters";
 
 export default function QuickAddModal({ onClose }) {
-  const { activeAccounts, fetchAccounts } = useAccounts();
+  const { activeAccounts } = useAccounts();
   const { categories } = useCategories();
-  const { fetchTransactions } = useTransactions();
-  const { fetchBudgets } = useBudgets();
+  const { createTransaction } = useTransactions();
   const { setNotice, setError } = useUI();
 
   const [type, setType] = useState("expense");
@@ -143,7 +141,7 @@ export default function QuickAddModal({ onClose }) {
         note: note.trim() || null,
       };
 
-      await transactionApi.create(payload);
+      await createTransaction(payload);
 
       // Lưu lại lựa chọn để lần sau tự điền
       localStorage.setItem("last_used_account_id", accountId);
@@ -152,7 +150,6 @@ export default function QuickAddModal({ onClose }) {
       const catObj = categories.find((c) => String(c.id) === String(categoryId));
       setNotice(`Đã thêm ${formatMoney(numericAmount)} (${catObj?.name || ""})`);
 
-      await Promise.all([fetchTransactions(), fetchAccounts(), fetchBudgets()]);
       onClose();
     } catch (err) {
       setError(getApiErrorMessage(err, "Không thể lưu giao dịch."));

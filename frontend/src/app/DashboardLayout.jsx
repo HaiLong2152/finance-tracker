@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useUI } from "../contexts/UIContext";
 import { useAuth } from "../contexts/AuthContext";
+import { useInbox } from "../contexts/InboxContext";
 import QuickAddModal from "../features/transactions/QuickAddModal";
 import BrandLogo from "../components/BrandLogo";
 
@@ -25,6 +26,17 @@ const navItems = [
         <polyline points="14 2 14 8 20 8" />
         <line x1="16" y1="13" x2="8" y2="13" />
         <line x1="16" y1="17" x2="8" y2="17" />
+      </svg>
+    ),
+  },
+  {
+    to: "/inbox",
+    label: "Chờ duyệt",
+    badgeKey: "unreadCount",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" />
+        <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
       </svg>
     ),
   },
@@ -64,6 +76,7 @@ const navItems = [
 function DashboardLayout() {
   const { error, notice, isQuickAddOpen, openQuickAdd, closeQuickAdd } = useUI();
   const { logout } = useAuth();
+  const { unreadCount } = useInbox();
 
   return (
     <div className="app-shell">
@@ -82,8 +95,13 @@ function DashboardLayout() {
               end={item.end}
               className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
             >
-              {item.icon}
-              <span>{item.label}</span>
+              <div className="nav-link-main">
+                {item.icon}
+                <span>{item.label}</span>
+              </div>
+              {item.badgeKey === "unreadCount" && unreadCount > 0 && (
+                <span className="nav-badge">{unreadCount > 99 ? "99+" : unreadCount}</span>
+              )}
             </NavLink>
           ))}
         </nav>
@@ -120,6 +138,20 @@ function DashboardLayout() {
           <span>Finance Tracker</span>
         </div>
         <div className="mobile-header-actions">
+          <NavLink
+            to="/inbox"
+            className="mobile-inbox-btn"
+            aria-label="Hộp chờ duyệt"
+            title="Hộp chờ duyệt"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" />
+              <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
+            </svg>
+            {unreadCount > 0 && (
+              <span className="mobile-inbox-badge">{unreadCount > 99 ? "99+" : unreadCount}</span>
+            )}
+          </NavLink>
           <button
             type="button"
             className="mobile-quick-btn"

@@ -75,6 +75,13 @@ export const reportApi = {
   getMonths: () => apiClient.get("/reports/months"),
 };
 
+export const inboxApi = {
+  list: (params) => apiClient.get("/inbox", { params }),
+  getStats: () => apiClient.get("/inbox/stats"),
+  getById: (id) => apiClient.get(`/inbox/${id}`),
+  resolve: (id, payload) => apiClient.post(`/inbox/${id}/resolve`, payload),
+};
+
 export const getApiErrorMessage = (error, fallback) => {
   if (error.response?.data?.message) {
     return error.response.data.message;

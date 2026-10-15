@@ -13,6 +13,20 @@ export const formatDate = (value) => {
   return dateFormatter.format(date);
 };
 
+export const formatDateTime = (value) => {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value);
+  return d.toLocaleString("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+};
+
 export const formatAccountType = (type) => {
   switch (type) {
     case "cash":

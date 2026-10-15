@@ -71,3 +71,27 @@ CREATE TABLE IF NOT EXISTS budgets (
     CHECK (limit_amount > 0)
 );
 
+-- Bảng nhận thông báo tự động (Inbox & Ingest Events - SPEC 7 & 9)
+CREATE TABLE IF NOT EXISTS ingest_events (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  package VARCHAR(255) NOT NULL,
+  title VARCHAR(500) NULL,
+  text TEXT NOT NULL,
+  posted_at BIGINT NULL,
+  device_id VARCHAR(100) NULL,
+  received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  idempotency_key VARCHAR(64) NOT NULL,
+  status ENUM('pending', 'unparsed', 'processed', 'ignored', 'duplicate', 'error') NOT NULL DEFAULT 'pending',
+  parser_name VARCHAR(100) NULL,
+  parsed_json JSON NULL,
+  transaction_id INT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_ingest_idempotency (idempotency_key),
+  KEY idx_ingest_status (status),
+  KEY idx_ingest_received_at (received_at),
+  KEY idx_ingest_package (package),
+  CONSTRAINT fk_ingest_events_transaction
+    FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE SET NULL
+);
+

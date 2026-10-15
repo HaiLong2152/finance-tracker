@@ -154,11 +154,11 @@ const create = async (transaction) => {
         [
             transaction.amount, 
             transaction.type, 
-            transaction.accountId, 
-            transaction.transferAccountId, 
-            transaction.categoryId, 
-            transaction.transactionDate, 
-            transaction.note
+            transaction.accountId ?? transaction.account_id, 
+            transaction.transferAccountId ?? transaction.transfer_account_id ?? null, 
+            transaction.categoryId ?? transaction.category_id ?? null, 
+            transaction.transactionDate ?? transaction.transaction_date, 
+            transaction.note ?? null
         ]
     );
     return result;

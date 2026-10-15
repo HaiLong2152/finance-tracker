@@ -8,6 +8,7 @@ import CategoriesPage from "./pages/CategoriesPage";
 import AccountsPage from "./pages/AccountsPage";
 import BudgetsPage from "./pages/BudgetsPage";
 import LoginPage from "./pages/LoginPage";
+import InboxPage from "./pages/InboxPage";
 import { UIProvider } from "./contexts/UIContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { CategoryProvider, useCategories } from "./contexts/CategoryContext";
@@ -15,6 +16,7 @@ import { AccountProvider, useAccounts } from "./contexts/AccountContext";
 import { TransactionProvider, useTransactions } from "./contexts/TransactionContext";
 import { BudgetProvider } from "./contexts/BudgetContext";
 import { ReportProvider, useReports } from "./contexts/ReportContext";
+import { InboxProvider, useInbox } from "./contexts/InboxContext";
 
 function AppContent() {
   const { isAuthenticated, isChecking } = useAuth();
@@ -22,6 +24,7 @@ function AppContent() {
   const { fetchAccounts } = useAccounts();
   const { fetchTransactions } = useTransactions();
   const { refreshReports } = useReports();
+  const { fetchStats } = useInbox();
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -29,8 +32,9 @@ function AppContent() {
       fetchAccounts();
       fetchTransactions();
       refreshReports();
+      fetchStats();
     }
-  }, [isAuthenticated, fetchCategories, fetchAccounts, fetchTransactions, refreshReports]);
+  }, [isAuthenticated, fetchCategories, fetchAccounts, fetchTransactions, refreshReports, fetchStats]);
 
   if (isChecking) {
     return (
@@ -51,6 +55,7 @@ function AppContent() {
         <Route element={<DashboardLayout />}>
           <Route index element={<DashboardPage />} />
           <Route path="transactions" element={<TransactionsPage />} />
+          <Route path="inbox" element={<InboxPage />} />
           <Route path="budgets" element={<BudgetsPage />} />
           <Route path="accounts" element={<AccountsPage />} />
           <Route path="categories" element={<CategoriesPage />} />
@@ -69,7 +74,9 @@ function App() {
             <AccountProvider>
               <ReportProvider>
                 <TransactionProvider>
-                  <AppContent />
+                  <InboxProvider>
+                    <AppContent />
+                  </InboxProvider>
                 </TransactionProvider>
               </ReportProvider>
             </AccountProvider>

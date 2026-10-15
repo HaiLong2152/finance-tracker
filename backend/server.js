@@ -10,6 +10,8 @@ const accountRoutes = require('./routes/accountRoutes');
 const budgetRoutes = require('./routes/budgetRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const authRoutes = require('./routes/authRoutes');
+const ingestRoutes = require('./routes/ingestRoutes');
+const inboxRoutes = require('./routes/inboxRoutes');
 const { requireAuth } = require('./middleware/authMiddleware');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 const { validateAuthConfig } = require('./services/authService');
@@ -55,12 +57,16 @@ app.get('/health', async (req, res) => {
 app.use('/api', apiLimiter);
 app.use('/api/auth', authRoutes);
 
+// Ingest API xác thực qua Bearer Token riêng từ điện thoại (SPEC 7 & 10)
+app.use('/api/ingest', ingestRoutes);
+
 // Tất cả tài nguyên nghiệp vụ được bảo vệ bởi phiên đăng nhập (SPEC 5.1 & 10)
 app.use('/api/accounts', requireAuth, accountRoutes);
 app.use('/api/categories', requireAuth, categoryRoutes);
 app.use('/api/transactions', requireAuth, transactionRoutes);
 app.use('/api/budgets', requireAuth, budgetRoutes);
 app.use('/api/reports', requireAuth, reportRoutes);
+app.use('/api/inbox', requireAuth, inboxRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

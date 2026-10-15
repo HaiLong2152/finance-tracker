@@ -192,6 +192,33 @@ async function migrate() {
 
   console.log('✓ Bảng budgets đã sẵn sàng.');
 
+  // 8. Tạo bảng ingest_events (Nhận thông báo tự động & Hộp chờ duyệt Inbox - Giai đoạn 4)
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS ingest_events (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      package VARCHAR(255) NOT NULL,
+      title VARCHAR(500) NULL,
+      text TEXT NOT NULL,
+      posted_at BIGINT NULL,
+      device_id VARCHAR(100) NULL,
+      received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      idempotency_key VARCHAR(64) NOT NULL,
+      status ENUM('pending', 'unparsed', 'processed', 'ignored', 'duplicate', 'error') NOT NULL DEFAULT 'pending',
+      parser_name VARCHAR(100) NULL,
+      parsed_json JSON NULL,
+      transaction_id INT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_ingest_idempotency (idempotency_key),
+      KEY idx_ingest_status (status),
+      KEY idx_ingest_received_at (received_at),
+      KEY idx_ingest_package (package),
+      CONSTRAINT fk_ingest_events_transaction
+        FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE SET NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `);
+  console.log('✓ Bảng ingest_events (Inbox) đã sẵn sàng.');
+
   console.log('=== Migration hoàn tất thành công 100%! ===');
   process.exit(0);
 }

@@ -8,8 +8,10 @@ export function InboxProvider({ children }) {
   const [items, setItems] = useState([]);
   const [stats, setStats] = useState({
     pending: 0,
-    unparsed: 0,
+    approved: 0,
     processed: 0,
+    unparsed: 0,
+    failed: 0,
     ignored: 0,
     total: 0,
   });
@@ -110,7 +112,23 @@ export function InboxProvider({ children }) {
     }
   };
 
-  const unreadCount = (stats.pending || 0) + (stats.unparsed || 0);
+  const reparseItem = async (id) => {
+    setResolvingId(id);
+    setError("");
+    try {
+      const res = await inboxApi.reparse(id);
+      setNotice(res.data?.message || "Đã phân tích lại thông báo từ dữ liệu gốc.");
+      await refreshInbox();
+      return true;
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Không thể phân tích lại thông báo."));
+      return false;
+    } finally {
+      setResolvingId(null);
+    }
+  };
+
+  const unreadCount = (stats.pending || 0) + (stats.unparsed || 0) + (stats.failed || 0) + (stats.error || 0);
 
   return (
     <InboxContext.Provider
@@ -130,6 +148,7 @@ export function InboxProvider({ children }) {
         setSearch: handleSearchChange,
         setPage: handlePageChange,
         resolveItem,
+        reparseItem,
       }}
     >
       {children}

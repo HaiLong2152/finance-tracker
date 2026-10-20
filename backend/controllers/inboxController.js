@@ -63,10 +63,27 @@ const resolve = async (req, res, next) => {
     }
 };
 
+/**
+ * Phân tích lại một thông báo bằng parser mới nhất từ dữ liệu gốc (POST /api/inbox/:id/reparse - SPEC 4.1)
+ */
+const reparse = async (req, res, next) => {
+    try {
+        const result = await ingestService.reparseInboxItem(req.params.id);
+        res.json({
+            success: true,
+            message: result.message,
+            data: result.data
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     list,
     stats,
     getById,
-    resolve
+    resolve,
+    reparse
 };
 

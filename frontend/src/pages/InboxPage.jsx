@@ -22,6 +22,7 @@ export default function InboxPage() {
     setSearch,
     setPage,
     resolveItem,
+    reparseItem,
   } = useInbox();
 
   const { fetchTransactions } = useTransactions();
@@ -74,10 +75,15 @@ export default function InboxPage() {
     await resolveItem(id, "ignore");
   };
 
+  const handleReparse = async (id) => {
+    await reparseItem(id);
+  };
+
   const tabs = [
     { id: "pending", label: "Chờ duyệt", count: stats.pending, badgeClass: "badge-pending" },
+    { id: "failed", label: "Thất bại", count: (stats.failed || 0) + (stats.error || 0), badgeClass: "badge-failed" },
     { id: "unparsed", label: "Chưa đọc được", count: stats.unparsed, badgeClass: "badge-unparsed" },
-    { id: "processed", label: "Đã tạo giao dịch", count: stats.processed, badgeClass: "badge-processed" },
+    { id: "approved", label: "Đã duyệt", count: (stats.approved || 0) + (stats.processed || 0), badgeClass: "badge-processed" },
     { id: "ignored", label: "Đã bỏ qua", count: stats.ignored, badgeClass: "badge-ignored" },
     { id: "all", label: "Tất cả", count: stats.total, badgeClass: "badge-all" },
   ];
@@ -199,6 +205,7 @@ export default function InboxPage() {
                 item={item}
                 onOpenConvert={handleOpenConvert}
                 onIgnore={handleIgnore}
+                onReparse={handleReparse}
                 isResolving={resolvingId === item.id}
               />
             ))}

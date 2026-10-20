@@ -10,6 +10,7 @@ const findByIdempotencyKey = async (idempotencyKey) => {
             package, 
             title, 
             text, 
+            raw_payload,
             posted_at, 
             device_id, 
             received_at, 
@@ -17,6 +18,7 @@ const findByIdempotencyKey = async (idempotencyKey) => {
             status, 
             parser_name, 
             parsed_json, 
+            error_message,
             transaction_id, 
             created_at, 
             updated_at
@@ -37,25 +39,29 @@ const create = async (eventData) => {
             package, 
             title, 
             text, 
+            raw_payload,
             posted_at, 
             device_id, 
             idempotency_key, 
             status, 
             parser_name, 
             parsed_json, 
+            error_message,
             transaction_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const [result] = await db.query(sql, [
         eventData.package,
         eventData.title || null,
         eventData.text,
+        eventData.raw_payload ? JSON.stringify(eventData.raw_payload) : null,
         eventData.posted_at || null,
         eventData.device_id || null,
         eventData.idempotency_key,
         eventData.status || 'pending',
         eventData.parser_name || null,
         eventData.parsed_json ? JSON.stringify(eventData.parsed_json) : null,
+        eventData.error_message || null,
         eventData.transaction_id || null
     ]);
     return result;
@@ -71,6 +77,7 @@ const findById = async (id) => {
             ie.package, 
             ie.title, 
             ie.text, 
+            ie.raw_payload,
             ie.posted_at, 
             ie.device_id, 
             ie.received_at, 
@@ -78,6 +85,7 @@ const findById = async (id) => {
             ie.status, 
             ie.parser_name, 
             ie.parsed_json, 
+            ie.error_message,
             ie.transaction_id, 
             ie.created_at, 
             ie.updated_at,
@@ -126,6 +134,7 @@ const findInbox = async ({ status, search, page = 1, limit = 20 }) => {
             ie.package, 
             ie.title, 
             ie.text, 
+            ie.raw_payload,
             ie.posted_at, 
             ie.device_id, 
             ie.received_at, 
@@ -133,6 +142,7 @@ const findInbox = async ({ status, search, page = 1, limit = 20 }) => {
             ie.status, 
             ie.parser_name, 
             ie.parsed_json, 
+            ie.error_message,
             ie.transaction_id, 
             ie.created_at, 
             ie.updated_at,
@@ -173,9 +183,11 @@ const getStats = async () => {
     const [rows] = await db.query(sql);
     const stats = {
         pending: 0,
-        unparsed: 0,
+        approved: 0,
         processed: 0,
         ignored: 0,
+        failed: 0,
+        unparsed: 0,
         duplicate: 0,
         error: 0,
         total: 0
@@ -194,6 +206,7 @@ const getStats = async () => {
 
 /**
  * Cập nhật trạng thái và thông tin liên kết của một tin thông báo
+ * Đảm bảo tính bất biến của nội dung nguồn: không sửa text, title, package, posted_at, raw_payload (SPEC 4.1)
  */
 const updateStatus = async (id, status, updates = {}) => {
     const sets = ['status = ?'];
@@ -210,6 +223,10 @@ const updateStatus = async (id, status, updates = {}) => {
     if (updates.parsed_json !== undefined) {
         sets.push('parsed_json = ?');
         values.push(updates.parsed_json ? JSON.stringify(updates.parsed_json) : null);
+    }
+    if (updates.error_message !== undefined) {
+        sets.push('error_message = ?');
+        values.push(updates.error_message);
     }
 
     values.push(id);

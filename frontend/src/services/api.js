@@ -80,6 +80,7 @@ export const inboxApi = {
   getStats: () => apiClient.get("/inbox/stats"),
   getById: (id) => apiClient.get(`/inbox/${id}`),
   resolve: (id, payload) => apiClient.post(`/inbox/${id}/resolve`, payload),
+  reparse: (id) => apiClient.post(`/inbox/${id}/reparse`),
 };
 
 export const getApiErrorMessage = (error, fallback) => {

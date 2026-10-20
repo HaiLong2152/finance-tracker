@@ -14,5 +14,8 @@ router.get('/:id', inboxController.getById);
 // POST /api/inbox/:id/resolve: Xử lý hoặc bỏ qua thông báo
 router.post('/:id/resolve', inboxController.resolve);
 
+// POST /api/inbox/:id/reparse: Phân tích lại thông báo từ dữ liệu gốc khi cập nhật parser (SPEC 4.1)
+router.post('/:id/reparse', inboxController.reparse);
+
 module.exports = router;
 

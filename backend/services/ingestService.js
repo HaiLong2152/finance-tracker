@@ -126,30 +126,50 @@ const processIngest = async (body) => {
     }
 
     // 3. Phân tích gợi ý sơ bộ (không tạo giao dịch tự động ngay)
-    const previewInfo = extractPreviewInfo(text, title);
-    const initialStatus = previewInfo ? 'pending' : 'unparsed';
+    // Đảm bảo dữ liệu nguồn không bị mất ngay cả khi parser gặp lỗi (SPEC 4.1)
+    let previewInfo = null;
+    let initialStatus = 'unparsed';
+    let parserName = null;
+    let errorMessage = null;
+
+    try {
+        previewInfo = extractPreviewInfo(text, title);
+        if (previewInfo) {
+            initialStatus = 'pending';
+            parserName = 'generic_preview';
+        } else {
+            initialStatus = 'unparsed';
+        }
+    } catch (parseErr) {
+        initialStatus = 'failed';
+        errorMessage = parseErr.message || 'Lỗi khi phân tích nội dung thông báo.';
+    }
 
     const newEventData = {
         package: pkg,
         title: title || null,
         text,
+        raw_payload: body,
         posted_at: postedAt,
         device_id: deviceId || null,
         idempotency_key: idempotencyKey,
         status: initialStatus,
-        parser_name: previewInfo ? 'generic_preview' : null,
+        parser_name: parserName,
         parsed_json: previewInfo,
+        error_message: errorMessage,
         transaction_id: null
     };
 
-    // 4. Lưu tin gốc vào CSDL
+    // 4. Lưu tin gốc vào CSDL (nguyên vẹn nội dung nguồn và payload gốc)
     const insertResult = await ingestRepository.create(newEventData);
     const savedEvent = await ingestRepository.findById(insertResult.insertId);
 
     return {
         duplicate: false,
         event: savedEvent,
-        message: 'Đã nhận và lưu thông báo gốc thành công vào Hộp chờ duyệt.'
+        message: initialStatus === 'failed'
+            ? 'Đã lưu thông báo gốc an toàn vào Hộp chờ duyệt (parser gặp lỗi và được ghi nhận để phân tích lại sau).'
+            : 'Đã nhận và lưu thông báo gốc thành công vào Hộp chờ duyệt.'
     };
 };
 
@@ -211,8 +231,8 @@ const resolveInboxItem = async (id, body = {}) => {
         };
     }
 
-    // 2. Thao tác xác nhận tạo giao dịch (Confirm / Create Transaction)
-    if (action === 'confirm' || action === 'create_transaction') {
+    // 2. Thao tác xác nhận tạo giao dịch (Confirm / Create Transaction / Approve - SPEC 4.1)
+    if (action === 'confirm' || action === 'create_transaction' || action === 'approve') {
         if (item.transaction_id) {
             throw new AppError('Thông báo này đã được liên kết với một giao dịch trước đó.', 400);
         }
@@ -263,20 +283,74 @@ const resolveInboxItem = async (id, body = {}) => {
         const createResult = await transactionRepository.create(txPayload);
         const newTransactionId = createResult.insertId;
 
-        // Cập nhật trạng thái thông báo thành 'processed' và liên kết transaction_id
-        await ingestRepository.updateStatus(numId, 'processed', {
-            transaction_id: newTransactionId
+        // Cập nhật trạng thái thông báo thành 'approved' (hoặc 'processed') và liên kết transaction_id
+        await ingestRepository.updateStatus(numId, 'approved', {
+            transaction_id: newTransactionId,
+            error_message: null
         });
 
         return {
             success: true,
-            status: 'processed',
+            status: 'approved',
             transaction_id: newTransactionId,
-            message: 'Đã tạo giao dịch từ thông báo thành công.'
+            message: 'Đã duyệt và tạo giao dịch từ thông báo thành công.'
         };
     }
 
-    throw new AppError("Hành động không hợp lệ (hỗ trợ: 'ignore', 'confirm').", 400);
+    throw new AppError("Hành động không hợp lệ (hỗ trợ: 'ignore', 'confirm', 'approve').", 400);
+};
+
+/**
+ * Phân tích lại thông báo từ dữ liệu nguồn gốc khi parser được nâng cấp (SPEC 4.1)
+ * Giữ nguyên vẹn tuyệt đối nội dung nguồn (text, title, package, posted_at, raw_payload)
+ */
+const reparseInboxItem = async (id) => {
+    const numId = Number(id);
+    if (!Number.isSafeInteger(numId) || numId <= 0) {
+        throw new AppError('Mã thông báo không hợp lệ.', 400);
+    }
+
+    const item = await ingestRepository.findById(numId);
+    if (!item) {
+        throw new AppError('Không tìm thấy thông báo trong Hộp chờ.', 404);
+    }
+
+    if (item.transaction_id || item.status === 'processed' || item.status === 'approved') {
+        throw new AppError('Không thể phân tích lại thông báo đã được duyệt thành giao dịch.', 400);
+    }
+
+    let previewInfo = null;
+    let newStatus = 'unparsed';
+    let parserName = null;
+    let errorMessage = null;
+
+    try {
+        previewInfo = extractPreviewInfo(item.text, item.title);
+        if (previewInfo) {
+            newStatus = 'pending';
+            parserName = 'generic_preview';
+        } else {
+            newStatus = 'unparsed';
+        }
+    } catch (parseErr) {
+        newStatus = 'failed';
+        errorMessage = parseErr.message || 'Lỗi khi phân tích lại thông báo.';
+    }
+
+    await ingestRepository.updateStatus(numId, newStatus, {
+        parser_name: parserName,
+        parsed_json: previewInfo,
+        error_message: errorMessage
+    });
+
+    const updated = await ingestRepository.findById(numId);
+    return {
+        success: true,
+        data: updated,
+        message: newStatus === 'pending'
+            ? 'Đã phân tích lại thành công và nhận diện được gợi ý giao dịch.'
+            : (newStatus === 'failed' ? `Phân tích lại thất bại: ${errorMessage}` : 'Không tìm thấy dữ liệu số tiền trong thông báo.')
+    };
 };
 
 module.exports = {
@@ -286,5 +360,6 @@ module.exports = {
     getInbox,
     getInboxStats,
     getInboxById,
-    resolveInboxItem
+    resolveInboxItem,
+    reparseInboxItem
 };

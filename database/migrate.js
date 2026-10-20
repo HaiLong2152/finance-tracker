@@ -192,20 +192,22 @@ async function migrate() {
 
   console.log('✓ Bảng budgets đã sẵn sàng.');
 
-  // 8. Tạo bảng ingest_events (Nhận thông báo tự động & Hộp chờ duyệt Inbox - Giai đoạn 4)
+  // 8. Tạo hoặc nâng cấp bảng ingest_events (Nhận thông báo tự động & Hộp chờ duyệt Inbox - SPEC 4.1)
   await db.query(`
     CREATE TABLE IF NOT EXISTS ingest_events (
       id INT AUTO_INCREMENT PRIMARY KEY,
       package VARCHAR(255) NOT NULL,
       title VARCHAR(500) NULL,
       text TEXT NOT NULL,
+      raw_payload JSON NULL,
       posted_at BIGINT NULL,
       device_id VARCHAR(100) NULL,
       received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       idempotency_key VARCHAR(64) NOT NULL,
-      status ENUM('pending', 'unparsed', 'processed', 'ignored', 'duplicate', 'error') NOT NULL DEFAULT 'pending',
+      status ENUM('pending', 'approved', 'processed', 'ignored', 'failed', 'unparsed', 'duplicate', 'error') NOT NULL DEFAULT 'pending',
       parser_name VARCHAR(100) NULL,
       parsed_json JSON NULL,
+      error_message TEXT NULL,
       transaction_id INT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -217,7 +219,28 @@ async function migrate() {
         FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE SET NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);
-  console.log('✓ Bảng ingest_events (Inbox) đã sẵn sàng.');
+
+  // Kiểm tra và bổ sung các cột cho bảng ingest_events nếu đã tạo từ phiên bản trước
+  const [ingestCols] = await db.query('DESCRIBE ingest_events');
+  const ingestColNames = ingestCols.map(c => c.Field);
+
+  if (!ingestColNames.includes('raw_payload')) {
+    await db.query('ALTER TABLE ingest_events ADD COLUMN raw_payload JSON NULL AFTER text');
+    console.log('✓ Đã thêm cột raw_payload vào bảng ingest_events.');
+  }
+
+  if (!ingestColNames.includes('error_message')) {
+    await db.query('ALTER TABLE ingest_events ADD COLUMN error_message TEXT NULL AFTER parsed_json');
+    console.log('✓ Đã thêm cột error_message vào bảng ingest_events.');
+  }
+
+  // Cập nhật enum status để hỗ trợ approved và failed theo SPEC 4.1
+  await db.query(`
+    ALTER TABLE ingest_events 
+    MODIFY COLUMN status ENUM('pending', 'approved', 'processed', 'ignored', 'failed', 'unparsed', 'duplicate', 'error') NOT NULL DEFAULT 'pending'
+  `);
+
+  console.log('✓ Bảng ingest_events (Inbox & Dữ liệu nguồn - SPEC 4.1) đã sẵn sàng.');
 
   console.log('=== Migration hoàn tất thành công 100%! ===');
   process.exit(0);

@@ -25,8 +25,12 @@ const getStatusBadge = (status) => {
       return <span className="inbox-status-pill pending">⏳ Chờ duyệt</span>;
     case "unparsed":
       return <span className="inbox-status-pill unparsed">❓ Chưa đọc được</span>;
+    case "approved":
     case "processed":
-      return <span className="inbox-status-pill processed">✓ Đã tạo giao dịch</span>;
+      return <span className="inbox-status-pill processed">✓ Đã duyệt</span>;
+    case "failed":
+    case "error":
+      return <span className="inbox-status-pill failed">⚠️ Thất bại</span>;
     case "ignored":
       return <span className="inbox-status-pill ignored">✕ Đã bỏ qua</span>;
     default:
@@ -38,6 +42,7 @@ export default function InboxCard({
   item,
   onOpenConvert,
   onIgnore,
+  onReparse,
   isResolving,
 }) {
   const [showDetails, setShowDetails] = useState(false);
@@ -109,8 +114,16 @@ export default function InboxCard({
         </div>
       )}
 
+      {/* Cảnh báo lý do lỗi nếu parser hoặc phân tích gặp lỗi (SPEC 4.1) */}
+      {item.error_message && (
+        <div className="inbox-error-banner">
+          <span className="error-icon">⚠️</span>
+          <span><strong>Lý do lỗi:</strong> {item.error_message}</span>
+        </div>
+      )}
+
       {/* Thông tin giao dịch đã liên kết */}
-      {item.status === "processed" && item.transaction_id && (
+      {(item.status === "processed" || item.status === "approved") && item.transaction_id && (
         <div className="inbox-linked-tx-info">
           <span>Liên kết giao dịch: <strong>#{item.transaction_id}</strong></span>
           {item.transaction_amount && (
@@ -126,7 +139,7 @@ export default function InboxCard({
           className="meta-toggle-btn"
           onClick={() => setShowDetails(!showDetails)}
         >
-          {showDetails ? "Ẩn khóa chống trùng ▴" : "Xem khóa chống trùng (Idempotency) ▾"}
+          {showDetails ? "Ẩn chi tiết kỹ thuật ▴" : "Xem chi tiết kỹ thuật (Idempotency, Payload) ▾"}
         </button>
 
         {showDetails && (
@@ -145,13 +158,21 @@ export default function InboxCard({
                 <span className="meta-val">{item.parser_name}</span>
               </div>
             )}
+            {item.raw_payload && (
+              <div className="meta-row">
+                <span className="meta-key">Raw Payload:</span>
+                <code className="meta-val">
+                  {typeof item.raw_payload === 'object' ? JSON.stringify(item.raw_payload) : String(item.raw_payload)}
+                </code>
+              </div>
+            )}
           </div>
         )}
       </div>
 
       {/* Card Actions */}
       <div className="inbox-card-actions">
-        {item.status !== "processed" ? (
+        {item.status !== "processed" && item.status !== "approved" ? (
           <>
             <button
               type="button"
@@ -161,6 +182,18 @@ export default function InboxCard({
             >
               <span>+</span> Tạo giao dịch
             </button>
+
+            {(item.status === "unparsed" || item.status === "failed" || item.status === "error") && onReparse && (
+              <button
+                type="button"
+                className="button-secondary inbox-reparse-btn"
+                onClick={() => onReparse(item.id)}
+                disabled={isResolving}
+                title="Phân tích lại nội dung từ dữ liệu gốc"
+              >
+                🔄 Thử đọc lại
+              </button>
+            )}
 
             {item.status !== "ignored" && (
               <button
@@ -175,7 +208,7 @@ export default function InboxCard({
           </>
         ) : (
           <div className="inbox-processed-label">
-            ✓ Đã lưu thành công vào lịch sử giao dịch
+            ✓ Đã duyệt và lưu thành công vào lịch sử giao dịch
           </div>
         )}
       </div>

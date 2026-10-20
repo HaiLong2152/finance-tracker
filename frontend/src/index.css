@@ -1971,6 +1971,10 @@ tr.row-selected {
   background: #fef3c7;
   color: #92400e;
 }
+.badge-failed {
+  background: #fee2e2;
+  color: #b91c1c;
+}
 .badge-unparsed {
   background: #f3f4f6;
   color: #4b5563;
@@ -2113,6 +2117,11 @@ tr.row-selected {
   color: #15803d;
   border: 1px solid #bbf7d0;
 }
+.inbox-status-pill.failed {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
 .inbox-status-pill.ignored {
   background: #f3f4f6;
   color: #6b7280;
@@ -2188,6 +2197,31 @@ tr.row-selected {
 .preview-type-text {
   color: #047857;
   font-size: 12px;
+}
+
+/* Error Banner (SPEC 4.1) */
+.inbox-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  font-size: 13px;
+  color: #991b1b;
+}
+
+.inbox-reparse-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #edf7f2;
+  color: #1b5e3c;
+  border: 1px solid #c2e2d0;
+}
+.inbox-reparse-btn:hover:not(:disabled) {
+  background: #d8efe3;
 }
 
 /* Linked Transaction Info */

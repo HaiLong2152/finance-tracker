@@ -76,11 +76,13 @@ const extractPreviewInfo = (text, title = '') => {
 };
 
 /**
- * Xử lý tiếp nhận thông báo gốc qua Ingest API (SPEC 7)
+ * Xử lý tiếp nhận thông báo gốc qua Ingest API (SPEC 4.2 & 7)
  * Đảm bảo:
- * 1. Chống nhận trùng Idempotent
- * 2. Lưu tin gốc đầy đủ vào ingest_events
- * 3. Chưa tạo giao dịch ngay từ tin chưa chắc chắn
+ * 1. Kiểm tra token, kích thước payload, các trường bắt buộc và độ dài
+ * 2. Chống nhận trùng Idempotent
+ * 3. LƯU PAYLOAD GỐC TRƯỚC KHI PARSE (đảm bảo không mất dữ liệu nguồn)
+ * 4. Phân tích sau khi đã lưu, ghi nhận lý do lỗi nếu parser gặp ngoại lệ
+ * 5. Phản hồi rõ trạng thái 'accepted' hoặc 'duplicate'
  */
 const processIngest = async (body) => {
     if (!body || typeof body !== 'object' || Array.isArray(body)) {
@@ -101,16 +103,32 @@ const processIngest = async (body) => {
     if (pkg.length > 255) {
         throw new AppError('Tên gói ứng dụng (package) vượt quá 255 ký tự.', 400);
     }
+    if (text.length > 10000) {
+        throw new AppError('Nội dung thông báo (text) vượt quá giới hạn cho phép (tối đa 10,000 ký tự).', 400);
+    }
+    if (title.length > 500) {
+        throw new AppError('Tiêu đề thông báo (title) vượt quá 500 ký tự.', 400);
+    }
+    if (deviceId && deviceId.length > 100) {
+        throw new AppError('Mã thiết bị (device_id) vượt quá 100 ký tự.', 400);
+    }
 
     let postedAt = null;
     if (body.posted_at !== undefined && body.posted_at !== null && body.posted_at !== '') {
         const num = Number(body.posted_at);
-        if (Number.isSafeInteger(num) && num > 0) {
-            postedAt = num;
+        if (!Number.isSafeInteger(num) || num <= 0) {
+            throw new AppError('Thời gian gửi thông báo (posted_at) không hợp lệ (yêu cầu số nguyên dương timestamp).', 400);
+        }
+        postedAt = num;
+    }
+
+    if (body.idempotency_key !== undefined && body.idempotency_key !== null) {
+        if (typeof body.idempotency_key !== 'string' || body.idempotency_key.trim().length > 64) {
+            throw new AppError('Mã chống trùng lặp (idempotency_key) không được vượt quá 64 ký tự.', 400);
         }
     }
 
-    // 1. Tính toán khóa chống trùng (Idempotency Key)
+    // 1. Tính toán hoặc sử dụng khóa chống trùng (Idempotency Key)
     const idempotencyKey = typeof body.idempotency_key === 'string' && body.idempotency_key.trim().length > 0
         ? body.idempotency_key.trim().slice(0, 64)
         : computeIdempotencyKey({ package: pkg, title, text, posted_at: postedAt });
@@ -119,33 +137,16 @@ const processIngest = async (body) => {
     const existing = await ingestRepository.findByIdempotencyKey(idempotencyKey);
     if (existing) {
         return {
+            status: 'duplicate',
             duplicate: true,
             event: existing,
             message: 'Thông báo đã được nhận trước đó (Idempotent: giữ nguyên bản ghi gốc).'
         };
     }
 
-    // 3. Phân tích gợi ý sơ bộ (không tạo giao dịch tự động ngay)
-    // Đảm bảo dữ liệu nguồn không bị mất ngay cả khi parser gặp lỗi (SPEC 4.1)
-    let previewInfo = null;
-    let initialStatus = 'unparsed';
-    let parserName = null;
-    let errorMessage = null;
-
-    try {
-        previewInfo = extractPreviewInfo(text, title);
-        if (previewInfo) {
-            initialStatus = 'pending';
-            parserName = 'generic_preview';
-        } else {
-            initialStatus = 'unparsed';
-        }
-    } catch (parseErr) {
-        initialStatus = 'failed';
-        errorMessage = parseErr.message || 'Lỗi khi phân tích nội dung thông báo.';
-    }
-
-    const newEventData = {
+    // 3. LƯU PAYLOAD GỐC VÀO CSDL TRƯỚC KHI PARSE (SPEC 4.2)
+    // Đảm bảo dữ liệu nguồn đã được ghi an toàn tuyệt đối vào CSDL trước khi xử lý logic phân tích
+    const initialRawData = {
         package: pkg,
         title: title || null,
         text,
@@ -153,23 +154,51 @@ const processIngest = async (body) => {
         posted_at: postedAt,
         device_id: deviceId || null,
         idempotency_key: idempotencyKey,
-        status: initialStatus,
-        parser_name: parserName,
-        parsed_json: previewInfo,
-        error_message: errorMessage,
+        status: 'pending',
+        parser_name: null,
+        parsed_json: null,
+        error_message: null,
         transaction_id: null
     };
 
-    // 4. Lưu tin gốc vào CSDL (nguyên vẹn nội dung nguồn và payload gốc)
-    const insertResult = await ingestRepository.create(newEventData);
-    const savedEvent = await ingestRepository.findById(insertResult.insertId);
+    const insertResult = await ingestRepository.create(initialRawData);
+    const eventId = insertResult.insertId;
+
+    // 4. Phân tích gợi ý sơ bộ sau khi đã lưu payload gốc an toàn (SPEC 4.1 & 4.2)
+    let previewInfo = null;
+    let finalStatus = 'unparsed';
+    let parserName = null;
+    let errorMessage = null;
+
+    try {
+        previewInfo = extractPreviewInfo(text, title);
+        if (previewInfo) {
+            finalStatus = 'pending';
+            parserName = 'generic_preview';
+        } else {
+            finalStatus = 'unparsed';
+        }
+    } catch (parseErr) {
+        finalStatus = 'failed';
+        errorMessage = parseErr.message || 'Lỗi khi phân tích nội dung thông báo.';
+    }
+
+    // 5. Cập nhật kết quả phân tích (nếu có cập nhật status/parsed_json/error_message)
+    await ingestRepository.updateStatus(eventId, finalStatus, {
+        parser_name: parserName,
+        parsed_json: previewInfo,
+        error_message: errorMessage
+    });
+
+    const savedEvent = await ingestRepository.findById(eventId);
 
     return {
+        status: 'accepted',
         duplicate: false,
         event: savedEvent,
-        message: initialStatus === 'failed'
+        message: finalStatus === 'failed'
             ? 'Đã lưu thông báo gốc an toàn vào Hộp chờ duyệt (parser gặp lỗi và được ghi nhận để phân tích lại sau).'
-            : 'Đã nhận và lưu thông báo gốc thành công vào Hộp chờ duyệt.'
+            : 'Thông báo đã được tiếp nhận thành công vào Hộp chờ duyệt.'
     };
 };
 

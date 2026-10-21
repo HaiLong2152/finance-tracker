@@ -36,6 +36,17 @@ const requireIngestToken = (req, res, next) => {
 };
 
 /**
+ * Kiểm tra kích thước payload gửi đến Ingest API (tối đa 64KB - SPEC 4.2)
+ */
+const checkIngestPayloadSize = (maxBytes = 64 * 1024) => (req, res, next) => {
+    const contentLength = Number(req.headers['content-length'] || 0);
+    if (contentLength > maxBytes) {
+        return next(new AppError('Kích thước dữ liệu thông báo vượt quá giới hạn cho phép (tối đa 64KB).', 413));
+    }
+    next();
+};
+
+/**
  * Rate-limiter riêng cho Ingest API (tối đa 60 thông báo / phút)
  */
 const ingestRateLimiter = rateLimit({
@@ -51,6 +62,7 @@ const ingestRateLimiter = rateLimit({
 
 module.exports = {
     requireIngestToken,
+    checkIngestPayloadSize,
     ingestRateLimiter
 };
 

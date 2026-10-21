@@ -84,6 +84,20 @@ export default function InboxCard({
         </div>
 
         <div className="inbox-header-badge">
+          {item.parser_name && (
+            <span className="inbox-parser-badge">
+              {item.parser_name === "vcb_parser" ? "VCB Parser" : "Parser Chuẩn"}
+            </span>
+          )}
+          {parsed?.confidence && (
+            <span className={`inbox-confidence-badge ${parsed.confidence}`}>
+              {parsed.confidence === "high"
+                ? "Tin cậy: Cao"
+                : parsed.confidence === "medium"
+                ? "Tin cậy: TB"
+                : "Tin cậy: Thấp"}
+            </span>
+          )}
           {getStatusBadge(item.status)}
         </div>
       </div>
@@ -103,14 +117,37 @@ export default function InboxCard({
       {/* Gợi ý sơ bộ từ Parser */}
       {parsed?.detected_amount && (
         <div className="inbox-preview-banner">
-          <span className="preview-label">Gợi ý phát hiện:</span>
-          <span className={`preview-amount ${parsed.detected_type}`}>
-            {parsed.detected_type === "income" ? "+" : "-"}
-            {formatMoney(parsed.detected_amount)}
-          </span>
-          <span className="preview-type-text">
-            ({parsed.detected_type === "income" ? "Thu tiền vào" : "Chi tiền ra"})
-          </span>
+          <div className="preview-main-info">
+            <span className="preview-label">Gợi ý phát hiện:</span>
+            <span className={`preview-amount ${parsed.detected_type}`}>
+              {parsed.detected_type === "income" ? "+" : "-"}
+              {formatMoney(parsed.detected_amount)}
+            </span>
+            <span className="preview-type-text">
+              ({parsed.detected_type === "income" ? "Thu tiền vào" : "Chi tiền ra"})
+            </span>
+          </div>
+
+          {(parsed.detected_date || parsed.suggested_account_name || parsed.account_identifier) && (
+            <div className="preview-sub-badges">
+              {parsed.detected_date && (
+                <span className="preview-sub-pill">
+                  📅 {parsed.detected_date}
+                </span>
+              )}
+              {parsed.suggested_account_name && (
+                <span className="preview-sub-pill highlight-account">
+                  🏦 Ví: <strong>{parsed.suggested_account_name}</strong>
+                  {parsed.account_identifier && ` (${parsed.account_identifier})`}
+                </span>
+              )}
+              {!parsed.suggested_account_name && parsed.account_identifier && (
+                <span className="preview-sub-pill">
+                  💳 STK: {parsed.account_identifier}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       )}
 

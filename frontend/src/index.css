@@ -2171,12 +2171,19 @@ tr.row-selected {
 .inbox-preview-banner {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 10px;
   padding: 10px 14px;
   border-radius: 8px;
   background: #ecfdf5;
   border: 1px solid #a7f3d0;
   font-size: 13px;
+  flex-wrap: wrap;
+}
+.preview-main-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   flex-wrap: wrap;
 }
 .preview-label {
@@ -2197,6 +2204,62 @@ tr.row-selected {
 .preview-type-text {
   color: #047857;
   font-size: 12px;
+}
+.preview-sub-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.preview-sub-pill {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #ffffff;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+}
+.preview-sub-pill.highlight-account {
+  background: #e6f9ef;
+  border-color: #34d399;
+  color: #064e3b;
+  font-weight: 500;
+}
+
+/* Parser & Confidence Badges (SPEC 4.3) */
+.inbox-parser-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+.inbox-confidence-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+.inbox-confidence-badge.high {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+.inbox-confidence-badge.medium {
+  background: #fef9c3;
+  color: #854d0e;
+  border: 1px solid #fef08a;
+}
+.inbox-confidence-badge.low {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
 }
 
 /* Error Banner (SPEC 4.1) */
@@ -2341,6 +2404,18 @@ tr.row-selected {
   align-items: center;
   font-size: 11px;
   margin-bottom: 8px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.raw-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.raw-header-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 .raw-badge {
   background: #25815e;
@@ -2374,13 +2449,33 @@ tr.row-selected {
   font-size: 13px;
   color: #166534;
 }
+.detected-primary-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
 .raw-detected-hint strong {
   font-size: 14px;
 }
 .detected-type-tag {
-  margin-left: 6px;
+  margin-left: 4px;
   font-size: 12px;
   color: #15803d;
+}
+.detected-date-tag {
+  margin-left: 6px;
+  font-size: 12px;
+  color: #4b5563;
+}
+.detected-account-hint {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #047857;
+  background: #f0fdf4;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px dashed #86efac;
 }
 .convert-tx-form {
   display: grid;

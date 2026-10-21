@@ -1,8 +1,10 @@
 const crypto = require('crypto');
+const db = require('../config/db');
 const ingestRepository = require('../repositories/ingestRepository');
 const transactionRepository = require('../repositories/transactionRepository');
 const accountRepository = require('../repositories/accountRepository');
 const categoryRepository = require('../repositories/categoryRepository');
+const { parseNotification } = require('../parsers');
 const AppError = require('../utils/AppError');
 const { toBigInt, toSafeNumber } = require('../utils/money');
 
@@ -164,26 +166,44 @@ const processIngest = async (body) => {
     const insertResult = await ingestRepository.create(initialRawData);
     const eventId = insertResult.insertId;
 
-    // 4. Phân tích gợi ý sơ bộ sau khi đã lưu payload gốc an toàn (SPEC 4.1 & 4.2)
+    // 4. Phân tích gợi ý giao dịch qua Parser Engine sau khi đã lưu payload gốc an toàn (SPEC 4.1 & 4.3)
     let previewInfo = null;
     let finalStatus = 'unparsed';
     let parserName = null;
     let errorMessage = null;
 
     try {
-        previewInfo = extractPreviewInfo(text, title);
-        if (previewInfo) {
+        const parsedResult = parseNotification(text, title, pkg);
+        parserName = parsedResult.parser_name;
+
+        if (parsedResult.success && parsedResult.detected_amount > 0) {
             finalStatus = 'pending';
-            parserName = 'generic_preview';
+            previewInfo = { ...parsedResult };
+
+            // So khớp tự động với tài khoản nếu có gợi ý số tài khoản (identifier_hint - SPEC 4.3)
+            if (parsedResult.account_identifier) {
+                const accounts = await accountRepository.findAll(false);
+                const matched = accounts.find((a) => {
+                    if (!a.identifier_hint) return false;
+                    const hintClean = a.identifier_hint.trim().toLowerCase();
+                    const identClean = parsedResult.account_identifier.toLowerCase();
+                    return identClean.includes(hintClean) || hintClean.includes(identClean);
+                });
+                if (matched) {
+                    previewInfo.suggested_account_id = matched.id;
+                    previewInfo.suggested_account_name = matched.name;
+                }
+            }
         } else {
             finalStatus = 'unparsed';
+            previewInfo = parsedResult.detected_amount ? parsedResult : null;
         }
     } catch (parseErr) {
         finalStatus = 'failed';
         errorMessage = parseErr.message || 'Lỗi khi phân tích nội dung thông báo.';
     }
 
-    // 5. Cập nhật kết quả phân tích (nếu có cập nhật status/parsed_json/error_message)
+    // 5. Cập nhật kết quả phân tích vào bản ghi đã lưu an toàn
     await ingestRepository.updateStatus(eventId, finalStatus, {
         parser_name: parserName,
         parsed_json: previewInfo,
@@ -232,10 +252,10 @@ const getInboxById = async (id) => {
 };
 
 /**
- * Giải quyết một mục trong Hộp chờ (Resolve Inbox Item - SPEC 10)
+ * Giải quyết một mục trong Hộp chờ (Resolve Inbox Item - SPEC 4.3 & 10)
  * Hỗ trợ 2 thao tác:
  * - action = 'ignore': Đánh dấu bỏ qua thông báo
- * - action = 'confirm' hoặc 'create_transaction': Tạo giao dịch chính thức và liên kết ID
+ * - action = 'approve' hoặc 'confirm': Tạo giao dịch chính thức và cập nhật trạng thái trong 1 MySQL Transaction (ACID)
  */
 const resolveInboxItem = async (id, body = {}) => {
     const numId = Number(id);
@@ -243,94 +263,118 @@ const resolveInboxItem = async (id, body = {}) => {
         throw new AppError('Mã thông báo không hợp lệ.', 400);
     }
 
-    const item = await ingestRepository.findById(numId);
-    if (!item) {
-        throw new AppError('Không tìm thấy thông báo trong Hộp chờ.', 404);
-    }
-
     const { action = 'ignore', transaction = {} } = body;
 
-    // 1. Thao tác bỏ qua (Ignore)
-    if (action === 'ignore') {
-        await ingestRepository.updateStatus(numId, 'ignored');
-        return {
-            success: true,
-            status: 'ignored',
-            message: 'Đã đánh dấu bỏ qua thông báo.'
-        };
+    // Sử dụng Database Transaction (ACID) để đảm bảo tính nguyên tử tuyệt đối (SPEC 4.3)
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        // 1. Khóa bản ghi với FOR UPDATE để chống race condition và duyệt 2 lần (double approval)
+        const [rows] = await connection.query(
+            'SELECT * FROM ingest_events WHERE id = ? FOR UPDATE',
+            [numId]
+        );
+        const item = rows[0];
+        if (!item) {
+            throw new AppError('Không tìm thấy thông báo trong Hộp chờ.', 404);
+        }
+
+        // 1. Thao tác bỏ qua (Ignore)
+        if (action === 'ignore') {
+            if (item.transaction_id || item.status === 'approved' || item.status === 'processed') {
+                throw new AppError('Thông báo này đã được tạo giao dịch, không thể bỏ qua.', 400);
+            }
+            await connection.query(
+                'UPDATE ingest_events SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+                ['ignored', numId]
+            );
+            await connection.commit();
+            return {
+                success: true,
+                status: 'ignored',
+                message: 'Đã đánh dấu bỏ qua thông báo.'
+            };
+        }
+
+        // 2. Thao tác duyệt tạo giao dịch (approve / confirm / create_transaction)
+        if (action === 'confirm' || action === 'create_transaction' || action === 'approve') {
+            if (item.transaction_id || item.status === 'approved' || item.status === 'processed') {
+                throw new AppError('Thông báo này đã được duyệt và liên kết với một giao dịch trước đó.', 400);
+            }
+
+            const {
+                amount,
+                type = 'expense',
+                account_id,
+                transfer_account_id,
+                category_id,
+                transaction_date,
+                note
+            } = transaction;
+
+            const numAmount = Number(amount);
+            if (!Number.isSafeInteger(numAmount) || numAmount <= 0) {
+                throw new AppError('Số tiền giao dịch không hợp lệ.', 400);
+            }
+
+            const numAccountId = Number(account_id);
+            if (!Number.isSafeInteger(numAccountId) || numAccountId <= 0) {
+                throw new AppError('Vui lòng chọn ví hợp lệ.', 400);
+            }
+
+            const [accountRows] = await connection.query('SELECT id, is_archived FROM accounts WHERE id = ?', [numAccountId]);
+            const account = accountRows[0];
+            if (!account) {
+                throw new AppError('Ví được chọn không tồn tại.', 404);
+            }
+            if (account.is_archived) {
+                throw new AppError('Không thể tạo giao dịch trên ví đã bị lưu trữ.', 400);
+            }
+
+            const dateStr = transaction_date
+                ? String(transaction_date).slice(0, 10)
+                : new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
+
+            const txType = ['income', 'expense', 'transfer'].includes(type) ? type : 'expense';
+            const transferAccountId = txType === 'transfer' ? Number(transfer_account_id) : null;
+            const categoryId = txType !== 'transfer' ? Number(category_id) : null;
+            const noteStr = typeof note === 'string' && note.trim() ? note.trim() : (item.title || item.text.slice(0, 100));
+
+            // Thêm vào bảng transactions
+            const [createResult] = await connection.query(
+                'INSERT INTO transactions (amount, type, account_id, transfer_account_id, category_id, transaction_date, note) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                [numAmount, txType, numAccountId, transferAccountId, categoryId, dateStr, noteStr]
+            );
+            const newTransactionId = createResult.insertId;
+
+            // Cập nhật trạng thái thông báo thành 'approved' và liên kết transaction_id
+            await connection.query(
+                'UPDATE ingest_events SET status = ?, transaction_id = ?, error_message = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+                ['approved', newTransactionId, numId]
+            );
+
+            await connection.commit();
+
+            return {
+                success: true,
+                status: 'approved',
+                transaction_id: newTransactionId,
+                message: 'Đã duyệt và tạo giao dịch từ thông báo thành công (ACID Transaction).'
+            };
+        }
+
+        throw new AppError("Hành động không hợp lệ (hỗ trợ: 'ignore', 'confirm', 'approve').", 400);
+    } catch (err) {
+        await connection.rollback();
+        throw err;
+    } finally {
+        connection.release();
     }
-
-    // 2. Thao tác xác nhận tạo giao dịch (Confirm / Create Transaction / Approve - SPEC 4.1)
-    if (action === 'confirm' || action === 'create_transaction' || action === 'approve') {
-        if (item.transaction_id) {
-            throw new AppError('Thông báo này đã được liên kết với một giao dịch trước đó.', 400);
-        }
-
-        const {
-            amount,
-            type = 'expense',
-            account_id,
-            transfer_account_id,
-            category_id,
-            transaction_date,
-            note
-        } = transaction;
-
-        const numAmount = Number(amount);
-        if (!Number.isSafeInteger(numAmount) || numAmount <= 0) {
-            throw new AppError('Số tiền giao dịch không hợp lệ.', 400);
-        }
-
-        const numAccountId = Number(account_id);
-        if (!Number.isSafeInteger(numAccountId) || numAccountId <= 0) {
-            throw new AppError('Vui lòng chọn ví hợp lệ.', 400);
-        }
-
-        const account = await accountRepository.findById(numAccountId);
-        if (!account) {
-            throw new AppError('Ví được chọn không tồn tại.', 404);
-        }
-
-        const dateStr = transaction_date
-            ? String(transaction_date).slice(0, 10)
-            : new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
-
-        const txPayload = {
-            amount: numAmount,
-            type: ['income', 'expense', 'transfer'].includes(type) ? type : 'expense',
-            accountId: numAccountId,
-            account_id: numAccountId,
-            transferAccountId: type === 'transfer' ? Number(transfer_account_id) : null,
-            transfer_account_id: type === 'transfer' ? Number(transfer_account_id) : null,
-            categoryId: type !== 'transfer' ? Number(category_id) : null,
-            category_id: type !== 'transfer' ? Number(category_id) : null,
-            transactionDate: dateStr,
-            transaction_date: dateStr,
-            note: typeof note === 'string' && note.trim() ? note.trim() : (item.title || item.text.slice(0, 100))
-        };
-
-        const createResult = await transactionRepository.create(txPayload);
-        const newTransactionId = createResult.insertId;
-
-        // Cập nhật trạng thái thông báo thành 'approved' (hoặc 'processed') và liên kết transaction_id
-        await ingestRepository.updateStatus(numId, 'approved', {
-            transaction_id: newTransactionId,
-            error_message: null
-        });
-
-        return {
-            success: true,
-            status: 'approved',
-            transaction_id: newTransactionId,
-            message: 'Đã duyệt và tạo giao dịch từ thông báo thành công.'
-        };
-    }
-
-    throw new AppError("Hành động không hợp lệ (hỗ trợ: 'ignore', 'confirm', 'approve').", 400);
 };
 
 /**
- * Phân tích lại thông báo từ dữ liệu nguồn gốc khi parser được nâng cấp (SPEC 4.1)
+ * Phân tích lại thông báo từ dữ liệu nguồn gốc khi parser được nâng cấp (SPEC 4.1 & 4.3)
  * Giữ nguyên vẹn tuyệt đối nội dung nguồn (text, title, package, posted_at, raw_payload)
  */
 const reparseInboxItem = async (id) => {
@@ -354,12 +398,29 @@ const reparseInboxItem = async (id) => {
     let errorMessage = null;
 
     try {
-        previewInfo = extractPreviewInfo(item.text, item.title);
-        if (previewInfo) {
+        const parsedResult = parseNotification(item.text, item.title, item.package);
+        parserName = parsedResult.parser_name;
+
+        if (parsedResult.success && parsedResult.detected_amount > 0) {
             newStatus = 'pending';
-            parserName = 'generic_preview';
+            previewInfo = { ...parsedResult };
+
+            if (parsedResult.account_identifier) {
+                const accounts = await accountRepository.findAll(false);
+                const matched = accounts.find((a) => {
+                    if (!a.identifier_hint) return false;
+                    const hintClean = a.identifier_hint.trim().toLowerCase();
+                    const identClean = parsedResult.account_identifier.toLowerCase();
+                    return identClean.includes(hintClean) || hintClean.includes(identClean);
+                });
+                if (matched) {
+                    previewInfo.suggested_account_id = matched.id;
+                    previewInfo.suggested_account_name = matched.name;
+                }
+            }
         } else {
             newStatus = 'unparsed';
+            previewInfo = parsedResult.detected_amount ? parsedResult : null;
         }
     } catch (parseErr) {
         newStatus = 'failed';

@@ -20,13 +20,17 @@ export default function ConvertTransactionModal({ item, onClose, onConfirm, isRe
 
   const initialType = parsed?.detected_type === "income" ? "income" : "expense";
   const initialAmount = parsed?.detected_amount ? String(parsed.detected_amount) : "";
-  const initialDate = item.posted_at
+  const initialDate = parsed?.detected_date || (item.posted_at
     ? getLocalDateString(new Date(item.posted_at))
-    : getLocalDateString();
+    : getLocalDateString());
 
   const [type, setType] = useState(initialType);
   const [amountStr, setAmountStr] = useState(initialAmount);
   const [accountId, setAccountId] = useState(() => {
+    if (parsed?.suggested_account_id) {
+      const match = activeAccounts.find((a) => a.id === Number(parsed.suggested_account_id));
+      if (match) return String(match.id);
+    }
     return activeAccounts[0] ? String(activeAccounts[0].id) : "";
   });
 
@@ -37,6 +41,7 @@ export default function ConvertTransactionModal({ item, onClose, onConfirm, isRe
 
   const [transactionDate, setTransactionDate] = useState(initialDate);
   const [note, setNote] = useState(() => {
+    if (parsed?.note) return parsed.note;
     if (item.title) return item.title;
     if (item.text) return item.text.slice(0, 100);
     return "";
@@ -107,11 +112,29 @@ export default function ConvertTransactionModal({ item, onClose, onConfirm, isRe
           </button>
         </div>
 
-        {/* Khối hiển thị nội dung tin gốc */}
+        {/* Khối hiển thị nội dung tin gốc & kết quả parse (SPEC 4.3) */}
         <div className="inbox-raw-preview-box">
           <div className="raw-preview-header">
-            <span className="raw-badge">Tin gốc từ điện thoại</span>
-            <span className="raw-pkg">{item.package}</span>
+            <div className="raw-header-left">
+              <span className="raw-badge">Tin gốc từ điện thoại</span>
+              <span className="raw-pkg">{item.package}</span>
+            </div>
+            <div className="raw-header-badges">
+              {item.parser_name && (
+                <span className="inbox-parser-badge">
+                  {item.parser_name === "vcb_parser" ? "VCB Parser" : "Parser Chuẩn"}
+                </span>
+              )}
+              {parsed?.confidence && (
+                <span className={`inbox-confidence-badge ${parsed.confidence}`}>
+                  {parsed.confidence === "high"
+                    ? "Độ tin cậy: Cao"
+                    : parsed.confidence === "medium"
+                    ? "Độ tin cậy: Trung bình"
+                    : "Độ tin cậy: Thấp"}
+                </span>
+              )}
+            </div>
           </div>
           <blockquote className="raw-text-quote">
             {item.title && <div className="raw-quote-title">{item.title}</div>}
@@ -119,11 +142,24 @@ export default function ConvertTransactionModal({ item, onClose, onConfirm, isRe
           </blockquote>
           {parsed?.detected_amount && (
             <div className="raw-detected-hint">
-              <span>Đã nhận diện: </span>
-              <strong>{formatMoney(parsed.detected_amount)}</strong>
-              <span className="detected-type-tag">
-                ({parsed.detected_type === "income" ? "Thu nhập" : "Chi tiêu"})
-              </span>
+              <div className="detected-primary-row">
+                <span>Đã nhận diện: </span>
+                <strong>{formatMoney(parsed.detected_amount)}</strong>
+                <span className="detected-type-tag">
+                  ({parsed.detected_type === "income" ? "Thu nhập" : "Chi tiêu"})
+                </span>
+                {parsed.detected_date && (
+                  <span className="detected-date-tag">
+                    • Ngày: <strong>{parsed.detected_date}</strong>
+                  </span>
+                )}
+              </div>
+              {parsed.suggested_account_name && (
+                <div className="detected-account-hint">
+                  💡 Tự động khớp ví: <strong>{parsed.suggested_account_name}</strong>
+                  {parsed.account_identifier && <span> (khớp STK/gợi ý {parsed.account_identifier})</span>}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -187,11 +223,15 @@ export default function ConvertTransactionModal({ item, onClose, onConfirm, isRe
                 onChange={(e) => setAccountId(e.target.value)}
               >
                 <option value="">-- Chọn ví --</option>
-                {activeAccounts.map((acc) => (
-                  <option key={acc.id} value={acc.id}>
-                    {acc.name} ({formatAccountType(acc.type)})
-                  </option>
-                ))}
+                {activeAccounts.map((acc) => {
+                  const isSuggested = acc.id === Number(parsed?.suggested_account_id);
+                  return (
+                    <option key={acc.id} value={acc.id}>
+                      {isSuggested ? "⭐ [Được gợi ý] " : ""}
+                      {acc.name} ({formatAccountType(acc.type)})
+                    </option>
+                  );
+                })}
               </select>
             </div>
 

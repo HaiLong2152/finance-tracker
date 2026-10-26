@@ -35,6 +35,12 @@ export default function ConvertTransactionModal({ item, onClose, onConfirm, isRe
   });
 
   const [categoryId, setCategoryId] = useState(() => {
+    if (parsed?.suggested_category_id) {
+      const match = categories.find(
+        (c) => c.id === Number(parsed.suggested_category_id) && c.type === initialType
+      );
+      if (match) return String(match.id);
+    }
     const matchedCats = categories.filter((c) => c.type === initialType);
     return matchedCats[0] ? String(matchedCats[0].id) : "";
   });
@@ -46,13 +52,29 @@ export default function ConvertTransactionModal({ item, onClose, onConfirm, isRe
     if (item.text) return item.text.slice(0, 100);
     return "";
   });
+
+  // Tùy chọn tạo quy tắc từ giao dịch này (SPEC 4.4)
+  const [saveAsRule, setSaveAsRule] = useState(false);
+  const [ruleKeyword, setRuleKeyword] = useState(() => {
+    if (parsed?.matched_rule?.keyword) return parsed.matched_rule.keyword;
+    if (parsed?.note) return parsed.note.slice(0, 50).trim();
+    if (item.title) return item.title.slice(0, 50).trim();
+    return "";
+  });
+  const [ruleApplyToAccount, setRuleApplyToAccount] = useState(false);
+
   const [localError, setLocalError] = useState("");
 
   const handleTypeChange = (newType) => {
     setType(newType);
     const available = categories.filter((c) => c.type === newType);
     if (available.length > 0) {
-      setCategoryId(String(available[0].id));
+      if (newType === initialType && parsed?.suggested_category_id) {
+        const match = available.find((c) => c.id === Number(parsed.suggested_category_id));
+        setCategoryId(match ? String(match.id) : String(available[0].id));
+      } else {
+        setCategoryId(String(available[0].id));
+      }
     } else {
       setCategoryId("");
     }
@@ -77,6 +99,10 @@ export default function ConvertTransactionModal({ item, onClose, onConfirm, isRe
       setLocalError("Vui lòng chọn danh mục phù hợp.");
       return;
     }
+    if (saveAsRule && !ruleKeyword.trim()) {
+      setLocalError("Vui lòng nhập từ khóa để lưu quy tắc tự gán.");
+      return;
+    }
 
     onConfirm({
       amount: numericAmount,
@@ -85,6 +111,10 @@ export default function ConvertTransactionModal({ item, onClose, onConfirm, isRe
       category_id: Number(categoryId),
       transaction_date: transactionDate,
       note: note.trim() || null,
+      create_rule: saveAsRule && ruleKeyword.trim() ? {
+        keyword: ruleKeyword.trim(),
+        apply_to_account: ruleApplyToAccount
+      } : undefined
     });
   };
 
@@ -112,7 +142,7 @@ export default function ConvertTransactionModal({ item, onClose, onConfirm, isRe
           </button>
         </div>
 
-        {/* Khối hiển thị nội dung tin gốc & kết quả parse (SPEC 4.3) */}
+        {/* Khối hiển thị nội dung tin gốc & kết quả parse (SPEC 4.3 & 4.4) */}
         <div className="inbox-raw-preview-box">
           <div className="raw-preview-header">
             <div className="raw-header-left">
@@ -158,6 +188,11 @@ export default function ConvertTransactionModal({ item, onClose, onConfirm, isRe
                 <div className="detected-account-hint">
                   💡 Tự động khớp ví: <strong>{parsed.suggested_account_name}</strong>
                   {parsed.account_identifier && <span> (khớp STK/gợi ý {parsed.account_identifier})</span>}
+                </div>
+              )}
+              {parsed.matched_rule && (
+                <div className="detected-rule-hint">
+                  🎯 Khớp quy tắc: <strong>"{parsed.matched_rule.keyword}"</strong> ➔ Danh mục: <strong>{parsed.suggested_category_name}</strong>
                 </div>
               )}
             </div>
@@ -247,11 +282,15 @@ export default function ConvertTransactionModal({ item, onClose, onConfirm, isRe
                 onChange={(e) => setCategoryId(e.target.value)}
               >
                 <option value="">-- Chọn danh mục --</option>
-                {availableCategories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
+                {availableCategories.map((c) => {
+                  const isSuggested = c.id === Number(parsed?.suggested_category_id);
+                  return (
+                    <option key={c.id} value={c.id}>
+                      {isSuggested ? "⭐ [Khớp quy tắc] " : ""}
+                      {c.name}
+                    </option>
+                  );
+                })}
               </select>
             </div>
           </div>
@@ -287,6 +326,49 @@ export default function ConvertTransactionModal({ item, onClose, onConfirm, isRe
             </div>
           </div>
 
+          {/* Hộp tùy chọn tạo quy tắc tự gán cho lần sau (SPEC 4.4) */}
+          <div className="create-rule-toggle-box">
+            <label className="rule-checkbox-row">
+              <input
+                type="checkbox"
+                checked={saveAsRule}
+                onChange={(e) => setSaveAsRule(e.target.checked)}
+              />
+              <span className="rule-checkbox-title">
+                ⚡ Tự động gán danh mục này cho các lần sau
+              </span>
+            </label>
+
+            {saveAsRule && (
+              <div className="rule-subfields-container">
+                <div className="form-group">
+                  <label className="form-label-sm">
+                    Từ khóa nhận diện *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    maxLength="100"
+                    placeholder="VD: GRAB, SHOPEE, PHUC LONG"
+                    value={ruleKeyword}
+                    onChange={(e) => setRuleKeyword(e.target.value)}
+                  />
+                  <span className="form-help-amount">
+                    Khi thông báo chứa từ khóa này, danh mục sẽ được tự động đề xuất.
+                  </span>
+                </div>
+                <label className="rule-checkbox-sub">
+                  <input
+                    type="checkbox"
+                    checked={ruleApplyToAccount}
+                    onChange={(e) => setRuleApplyToAccount(e.target.checked)}
+                  />
+                  <span>Chỉ áp dụng khi đúng ví đang chọn</span>
+                </label>
+              </div>
+            )}
+          </div>
+
           <div className="modal-actions">
             <button
               type="button"
@@ -309,4 +391,3 @@ export default function ConvertTransactionModal({ item, onClose, onConfirm, isRe
     </div>
   );
 }
-

@@ -242,6 +242,29 @@ async function migrate() {
 
   console.log('✓ Bảng ingest_events (Inbox & Dữ liệu nguồn - SPEC 4.1) đã sẵn sàng.');
 
+  // 9. Tạo bảng category_rules (Quy tắc tự gán danh mục - SPEC 4.4)
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS category_rules (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      keyword VARCHAR(100) NOT NULL,
+      match_type ENUM('contains', 'exact') NOT NULL DEFAULT 'contains',
+      transaction_type ENUM('income', 'expense') NOT NULL DEFAULT 'expense',
+      account_id INT NULL,
+      category_id INT NOT NULL,
+      priority INT NOT NULL DEFAULT 0,
+      is_active TINYINT(1) NOT NULL DEFAULT 1,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      KEY idx_rules_priority (priority DESC),
+      KEY idx_rules_active (is_active),
+      CONSTRAINT fk_rules_category
+        FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE RESTRICT,
+      CONSTRAINT fk_rules_account
+        FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE SET NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `);
+  console.log('✓ Bảng category_rules (Quy tắc tự gán danh mục - SPEC 4.4) đã sẵn sàng.');
+
   console.log('=== Migration hoàn tất thành công 100%! ===');
   process.exit(0);
 }

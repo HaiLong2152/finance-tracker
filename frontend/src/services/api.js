@@ -83,6 +83,16 @@ export const inboxApi = {
   reparse: (id) => apiClient.post(`/inbox/${id}/reparse`),
 };
 
+export const ruleApi = {
+  list: (params) => apiClient.get("/rules", { params }),
+  getById: (id) => apiClient.get(`/rules/${id}`),
+  create: (payload) => apiClient.post("/rules", payload),
+  update: (id, payload) => apiClient.put(`/rules/${id}`, payload),
+  remove: (id) => apiClient.delete(`/rules/${id}`),
+  toggle: (id) => apiClient.patch(`/rules/${id}/toggle`),
+  reorder: (orders) => apiClient.post("/rules/reorder", { orders }),
+};
+
 export const getApiErrorMessage = (error, fallback) => {
   if (error.response?.data?.message) {
     return error.response.data.message;

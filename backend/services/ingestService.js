@@ -4,6 +4,7 @@ const ingestRepository = require('../repositories/ingestRepository');
 const transactionRepository = require('../repositories/transactionRepository');
 const accountRepository = require('../repositories/accountRepository');
 const categoryRepository = require('../repositories/categoryRepository');
+const ruleService = require('./ruleService');
 const { parseNotification } = require('../parsers');
 const AppError = require('../utils/AppError');
 const { toBigInt, toSafeNumber } = require('../utils/money');
@@ -194,6 +195,23 @@ const processIngest = async (body) => {
                     previewInfo.suggested_account_name = matched.name;
                 }
             }
+
+            // So khớp tự động với quy tắc danh mục (Category Rules Engine - SPEC 4.4)
+            const searchContent = `${parsedResult.note || ''} ${title || ''} ${text || ''}`.trim();
+            const matchedRule = await ruleService.matchRule(
+                searchContent,
+                parsedResult.detected_type || 'expense',
+                previewInfo.suggested_account_id || null
+            );
+            if (matchedRule) {
+                previewInfo.suggested_category_id = matchedRule.category_id;
+                previewInfo.suggested_category_name = matchedRule.category_name;
+                previewInfo.matched_rule = {
+                    id: matchedRule.id,
+                    keyword: matchedRule.keyword,
+                    priority: matchedRule.priority
+                };
+            }
         } else {
             finalStatus = 'unparsed';
             previewInfo = parsedResult.detected_amount ? parsedResult : null;
@@ -356,6 +374,23 @@ const resolveInboxItem = async (id, body = {}) => {
 
             await connection.commit();
 
+            // Nếu người dùng yêu cầu tạo quy tắc từ giao dịch đã duyệt (SPEC 4.4)
+            const ruleToCreate = body.create_rule || transaction.create_rule;
+            if (ruleToCreate && ruleToCreate.keyword && categoryId) {
+                try {
+                    await ruleService.createRule({
+                        keyword: ruleToCreate.keyword,
+                        category_id: categoryId,
+                        transaction_type: txType,
+                        account_id: ruleToCreate.apply_to_account ? numAccountId : null,
+                        match_type: ruleToCreate.match_type || 'contains',
+                        priority: ruleToCreate.priority || 0
+                    });
+                } catch (rErr) {
+                    console.warn('[IngestService] Không thể tự động tạo quy tắc từ giao dịch duyệt:', rErr.message);
+                }
+            }
+
             return {
                 success: true,
                 status: 'approved',
@@ -417,6 +452,23 @@ const reparseInboxItem = async (id) => {
                     previewInfo.suggested_account_id = matched.id;
                     previewInfo.suggested_account_name = matched.name;
                 }
+            }
+
+            // So khớp tự động với quy tắc danh mục (Category Rules Engine - SPEC 4.4)
+            const searchContent = `${parsedResult.note || ''} ${item.title || ''} ${item.text || ''}`.trim();
+            const matchedRule = await ruleService.matchRule(
+                searchContent,
+                parsedResult.detected_type || 'expense',
+                previewInfo.suggested_account_id || null
+            );
+            if (matchedRule) {
+                previewInfo.suggested_category_id = matchedRule.category_id;
+                previewInfo.suggested_category_name = matchedRule.category_name;
+                previewInfo.matched_rule = {
+                    id: matchedRule.id,
+                    keyword: matchedRule.keyword,
+                    priority: matchedRule.priority
+                };
             }
         } else {
             newStatus = 'unparsed';

@@ -128,7 +128,7 @@ export default function InboxCard({
             </span>
           </div>
 
-          {(parsed.detected_date || parsed.suggested_account_name || parsed.account_identifier) && (
+          {(parsed.detected_date || parsed.suggested_account_name || parsed.account_identifier || parsed.suggested_category_name) && (
             <div className="preview-sub-badges">
               {parsed.detected_date && (
                 <span className="preview-sub-pill">
@@ -144,6 +144,12 @@ export default function InboxCard({
               {!parsed.suggested_account_name && parsed.account_identifier && (
                 <span className="preview-sub-pill">
                   💳 STK: {parsed.account_identifier}
+                </span>
+              )}
+              {parsed.suggested_category_name && (
+                <span className="preview-sub-pill highlight-category">
+                  🏷️ Danh mục: <strong>{parsed.suggested_category_name}</strong>
+                  {parsed.matched_rule?.keyword && ` ("${parsed.matched_rule.keyword}")`}
                 </span>
               )}
             </div>

@@ -12,6 +12,7 @@ const reportRoutes = require('./routes/reportRoutes');
 const authRoutes = require('./routes/authRoutes');
 const ingestRoutes = require('./routes/ingestRoutes');
 const inboxRoutes = require('./routes/inboxRoutes');
+const ruleRoutes = require('./routes/ruleRoutes');
 const { requireAuth } = require('./middleware/authMiddleware');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 const { validateAuthConfig } = require('./services/authService');
@@ -67,6 +68,7 @@ app.use('/api/transactions', requireAuth, transactionRoutes);
 app.use('/api/budgets', requireAuth, budgetRoutes);
 app.use('/api/reports', requireAuth, reportRoutes);
 app.use('/api/inbox', requireAuth, inboxRoutes);
+app.use('/api/rules', requireAuth, ruleRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

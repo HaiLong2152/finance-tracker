@@ -27,6 +27,24 @@ CREATE TABLE IF NOT EXISTS categories (
   UNIQUE KEY uq_categories_name_type (name, type)
 );
 
+-- Bảng quản lý đợt nhập sao kê (Import Batches - SPEC 4.5)
+CREATE TABLE IF NOT EXISTS import_batches (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  file_name VARCHAR(255) NOT NULL,
+  file_hash VARCHAR(64) NOT NULL,
+  account_id INT NOT NULL,
+  total_rows INT NOT NULL DEFAULT 0,
+  imported_rows INT NOT NULL DEFAULT 0,
+  skipped_rows INT NOT NULL DEFAULT 0,
+  status ENUM('preview', 'completed', 'failed') NOT NULL DEFAULT 'completed',
+  error_log JSON NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_import_batches_hash (file_hash),
+  KEY idx_import_batches_account (account_id),
+  CONSTRAINT fk_import_batches_account
+    FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE RESTRICT
+);
+
 -- Bảng giao dịch
 CREATE TABLE IF NOT EXISTS transactions (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -35,6 +53,8 @@ CREATE TABLE IF NOT EXISTS transactions (
   account_id INT NOT NULL,
   transfer_account_id INT NULL,
   category_id INT NULL,
+  import_batch_id INT NULL,
+  import_row_hash VARCHAR(64) NULL,
   transaction_date DATE NOT NULL,
   note TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -44,6 +64,8 @@ CREATE TABLE IF NOT EXISTS transactions (
     FOREIGN KEY (transfer_account_id) REFERENCES accounts(id) ON DELETE RESTRICT,
   CONSTRAINT fk_transactions_category
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_transactions_import_batch
+    FOREIGN KEY (import_batch_id) REFERENCES import_batches(id) ON DELETE SET NULL,
   CONSTRAINT chk_transactions_amount
     CHECK (amount > 0),
   CONSTRAINT chk_transactions_transfer_rules
@@ -52,7 +74,8 @@ CREATE TABLE IF NOT EXISTS transactions (
       OR
       (type IN ('income', 'expense') AND transfer_account_id IS NULL AND category_id IS NOT NULL)
     ),
-  INDEX idx_transactions_date (transaction_date)
+  INDEX idx_transactions_date (transaction_date),
+  INDEX idx_transactions_import_hash (import_row_hash)
 );
 
 -- Bảng ngân sách theo danh mục & tháng

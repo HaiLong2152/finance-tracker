@@ -13,6 +13,7 @@ const authRoutes = require('./routes/authRoutes');
 const ingestRoutes = require('./routes/ingestRoutes');
 const inboxRoutes = require('./routes/inboxRoutes');
 const ruleRoutes = require('./routes/ruleRoutes');
+const importRoutes = require('./routes/importRoutes');
 const { requireAuth } = require('./middleware/authMiddleware');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 const { validateAuthConfig } = require('./services/authService');
@@ -41,7 +42,7 @@ app.use(cors({
     credentials: true,
 }));
 app.use(cookieParser());
-app.use(express.json({ limit: '100kb' }));
+app.use(express.json({ limit: '10mb' }));
 
 app.get('/', (req, res) => {
     res.send('Finance Tracker API đang hoạt động.');
@@ -69,6 +70,7 @@ app.use('/api/budgets', requireAuth, budgetRoutes);
 app.use('/api/reports', requireAuth, reportRoutes);
 app.use('/api/inbox', requireAuth, inboxRoutes);
 app.use('/api/rules', requireAuth, ruleRoutes);
+app.use('/api/import', requireAuth, importRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

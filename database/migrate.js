@@ -265,6 +265,69 @@ async function migrate() {
   `);
   console.log('✓ Bảng category_rules (Quy tắc tự gán danh mục - SPEC 4.4) đã sẵn sàng.');
 
+  // 10. Tạo bảng import_batches và liên kết vào transactions (SPEC 4.5)
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS import_batches (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      file_name VARCHAR(255) NOT NULL,
+      file_hash VARCHAR(64) NOT NULL,
+      account_id INT NOT NULL,
+      total_rows INT NOT NULL DEFAULT 0,
+      imported_rows INT NOT NULL DEFAULT 0,
+      skipped_rows INT NOT NULL DEFAULT 0,
+      status ENUM('preview', 'completed', 'failed') NOT NULL DEFAULT 'completed',
+      error_log JSON NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      KEY idx_import_batches_hash (file_hash),
+      KEY idx_import_batches_account (account_id),
+      CONSTRAINT fk_import_batches_account
+        FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE RESTRICT
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `);
+
+  const [txCols] = await db.query('DESCRIBE transactions');
+  const txColNames = txCols.map(c => c.Field);
+
+  if (!txColNames.includes('import_batch_id')) {
+    await db.query(`ALTER TABLE transactions ADD COLUMN import_batch_id INT NULL AFTER category_id`);
+    console.log('✓ Đã thêm cột import_batch_id vào bảng transactions.');
+  }
+
+  if (!txColNames.includes('import_row_hash')) {
+    await db.query(`ALTER TABLE transactions ADD COLUMN import_row_hash VARCHAR(64) NULL AFTER import_batch_id`);
+    console.log('✓ Đã thêm cột import_row_hash vào bảng transactions.');
+  }
+
+  const [txFks] = await db.query(`
+    SELECT CONSTRAINT_NAME 
+    FROM information_schema.TABLE_CONSTRAINTS 
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'transactions' AND CONSTRAINT_TYPE = 'FOREIGN KEY'
+  `);
+  const txFkNames = txFks.map(f => f.CONSTRAINT_NAME);
+
+  if (!txFkNames.includes('fk_transactions_import_batch')) {
+    await db.query(`
+      ALTER TABLE transactions 
+      ADD CONSTRAINT fk_transactions_import_batch 
+      FOREIGN KEY (import_batch_id) REFERENCES import_batches(id) ON DELETE SET NULL
+    `);
+    console.log('✓ Đã thêm foreign key fk_transactions_import_batch.');
+  }
+
+  const [txIndexes] = await db.query(`
+    SELECT INDEX_NAME 
+    FROM information_schema.STATISTICS 
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'transactions'
+  `);
+  const txIndexNames = txIndexes.map(i => i.INDEX_NAME);
+
+  if (!txIndexNames.includes('idx_transactions_import_hash')) {
+    await db.query(`ALTER TABLE transactions ADD INDEX idx_transactions_import_hash (import_row_hash)`);
+    console.log('✓ Đã thêm index idx_transactions_import_hash vào bảng transactions.');
+  }
+
+  console.log('✓ Bảng import_batches và liên kết giao dịch (SPEC 4.5) đã sẵn sàng.');
+
   console.log('=== Migration hoàn tất thành công 100%! ===');
   process.exit(0);
 }

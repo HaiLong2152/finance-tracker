@@ -93,6 +93,13 @@ export const ruleApi = {
   reorder: (orders) => apiClient.post("/rules/reorder", { orders }),
 };
 
+export const importApi = {
+  preview: (payload) => apiClient.post("/import/preview", payload),
+  confirm: (payload) => apiClient.post("/import/confirm", payload),
+  getBatches: () => apiClient.get("/import/batches"),
+  getBatchById: (id) => apiClient.get(`/import/batches/${id}`),
+};
+
 export const getApiErrorMessage = (error, fallback) => {
   if (error.response?.data?.message) {
     return error.response.data.message;

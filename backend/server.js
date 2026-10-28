@@ -14,6 +14,7 @@ const ingestRoutes = require('./routes/ingestRoutes');
 const inboxRoutes = require('./routes/inboxRoutes');
 const ruleRoutes = require('./routes/ruleRoutes');
 const importRoutes = require('./routes/importRoutes');
+const reconciliationRoutes = require('./routes/reconciliationRoutes');
 const { requireAuth } = require('./middleware/authMiddleware');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 const { validateAuthConfig } = require('./services/authService');
@@ -71,6 +72,7 @@ app.use('/api/reports', requireAuth, reportRoutes);
 app.use('/api/inbox', requireAuth, inboxRoutes);
 app.use('/api/rules', requireAuth, ruleRoutes);
 app.use('/api/import', requireAuth, importRoutes);
+app.use('/api/reconciliations', requireAuth, reconciliationRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

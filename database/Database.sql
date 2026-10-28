@@ -140,4 +140,24 @@ CREATE TABLE IF NOT EXISTS category_rules (
     FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE SET NULL
 );
 
+-- Bảng lịch sử đối soát số dư (Balance Reconciliation - SPEC 4.6)
+CREATE TABLE IF NOT EXISTS reconciliations (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  account_id INT NOT NULL,
+  reconciliation_date DATE NOT NULL,
+  expected_balance BIGINT NOT NULL,
+  actual_balance BIGINT NOT NULL,
+  difference BIGINT NOT NULL,
+  transaction_id INT NULL,
+  note TEXT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_reconciliations_account (account_id),
+  KEY idx_reconciliations_date (reconciliation_date),
+  CONSTRAINT fk_reconciliations_account
+    FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_reconciliations_transaction
+    FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE SET NULL
+);
+
+
 

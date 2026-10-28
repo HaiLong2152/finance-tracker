@@ -100,6 +100,13 @@ export const importApi = {
   getBatchById: (id) => apiClient.get(`/import/batches/${id}`),
 };
 
+export const reconciliationApi = {
+  preview: (payload) => apiClient.post("/reconciliations/preview", payload),
+  confirm: (payload) => apiClient.post("/reconciliations/confirm", payload),
+  getHistory: (accountId) => apiClient.get("/reconciliations", { params: accountId ? { accountId } : {} }),
+  getById: (id) => apiClient.get(`/reconciliations/${id}`),
+};
+
 export const getApiErrorMessage = (error, fallback) => {
   if (error.response?.data?.message) {
     return error.response.data.message;

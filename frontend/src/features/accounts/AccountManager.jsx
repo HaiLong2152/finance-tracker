@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useUI } from "../../contexts/UIContext";
 import { useAccounts } from "../../contexts/AccountContext";
 import { formatMoney, formatDate, formatAccountType, getLocalDateString } from "../../utils/formatters";
+import ReconciliationModal from "./ReconciliationModal";
 
 const defaultStartDate = () => getLocalDateString();
 
@@ -32,6 +33,8 @@ export default function AccountManager() {
   const [editingId, setEditingId] = useState(null);
   const [editingEarliestTxDate, setEditingEarliestTxDate] = useState(null);
   const [editingTransactionCount, setEditingTransactionCount] = useState(0);
+  const [reconcileModalOpen, setReconcileModalOpen] = useState(false);
+  const [reconcileAccountId, setReconcileAccountId] = useState(null);
   const { setNotice, setError } = useUI();
 
   const handleChange = (e) => {
@@ -105,6 +108,16 @@ export default function AccountManager() {
     if (success && editingId === acc.id) {
       cancelEdit();
     }
+  };
+
+  const handleOpenReconcile = (accId = null) => {
+    setReconcileAccountId(accId);
+    setReconcileModalOpen(true);
+  };
+
+  const handleReconcileSuccess = async (result) => {
+    setNotice(result?.message || "Đối soát số dư thành công!");
+    await toggleShowArchived(showArchived); // Làm mới danh sách ví để cập nhật số dư
   };
 
   return (
@@ -224,14 +237,24 @@ export default function AccountManager() {
             <h2 id="account-list-title">Danh sách ví</h2>
             <span>{accounts.length} ví</span>
           </div>
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={showArchived}
-              onChange={(e) => toggleShowArchived(e.target.checked)}
-            />
-            Hiện ví đã lưu trữ (Archived)
-          </label>
+          <div className="heading-actions">
+            <button
+              type="button"
+              className="button-small button-secondary"
+              onClick={() => handleOpenReconcile(null)}
+              disabled={accounts.length === 0}
+            >
+              ⚖️ Đối soát số dư
+            </button>
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={showArchived}
+                onChange={(e) => toggleShowArchived(e.target.checked)}
+              />
+              Hiện ví đã lưu trữ
+            </label>
+          </div>
         </div>
 
         {loading ? (
@@ -284,6 +307,16 @@ export default function AccountManager() {
                   </div>
 
                   <div className="account-card-actions">
+                    {!acc.is_archived && (
+                      <button
+                        type="button"
+                        className="button-small button-primary"
+                        onClick={() => handleOpenReconcile(acc.id)}
+                        title="Đối soát số dư thực tế với số dư hệ thống"
+                      >
+                        ⚖️ Đối soát
+                      </button>
+                    )}
                     <button
                       type="button"
                       className="button-small button-secondary"
@@ -318,6 +351,15 @@ export default function AccountManager() {
           </div>
         )}
       </section>
+
+      {reconcileModalOpen && (
+        <ReconciliationModal
+          accounts={accounts.filter((a) => !a.is_archived)}
+          initialAccountId={reconcileAccountId}
+          onClose={() => setReconcileModalOpen(false)}
+          onSuccess={handleReconcileSuccess}
+        />
+      )}
     </>
   );
 }

@@ -1,4 +1,5 @@
 const AppError = require('../utils/AppError');
+const logger = require('../utils/logger');
 
 const notFoundHandler = (req, res) => {
     res.status(404).json({
@@ -31,14 +32,9 @@ const errorHandler = (error, req, res, next) => {
         });
     }
 
-    // Vệ sinh log: không in token, mật khẩu hoặc nội dung nhạy cảm ra log máy chủ (SPEC 4.2 & 5.1)
-    const sanitizedMsg = error.message
-        ? error.message.replace(/Bearer\s+[A-Za-z0-9._-]+/gi, 'Bearer [REDACTED]')
-        : 'Unknown error';
-    console.error('Unhandled server error:', `${error.name || 'Error'}: ${sanitizedMsg}`);
-    if (error.code) {
-        console.error('Error Code:', error.code);
-    }
+    // Ghi log máy chủ chuẩn hóa (tự động lọc thông tin nhạy cảm)
+    logger.error('Unhandled server error', error, 'HTTP');
+
     return res.status(500).json({
         success: false,
         message: 'Đã xảy ra lỗi máy chủ.',

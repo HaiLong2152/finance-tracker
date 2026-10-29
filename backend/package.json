@@ -5,7 +5,11 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "start": "node server.js",
+    "db:migrate": "node ../database/migrate.js",
+    "db:status": "node ../database/migrate.js --status",
+    "db:rollback": "node ../database/migrate.js --rollback"
   },
   "keywords": [],
   "author": "",

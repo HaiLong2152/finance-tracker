@@ -1,12 +1,12 @@
 const mysql = require('mysql2/promise');
-const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
+const { env } = require('./env');
 
 const pool = mysql.createPool({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
+    host: env.db.host,
+    port: env.db.port,
+    user: env.db.user,
+    password: env.db.password,
+    database: env.db.name,
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
@@ -19,24 +19,31 @@ const pool = mysql.createPool({
 pool.testConnection = async () => {
     try {
         const connection = await pool.getConnection();
-        console.log(`Kết nối MySQL thành công: ${process.env.DB_NAME}`);
         connection.release();
         return true;
     } catch (error) {
-        console.error('Lỗi kết nối MySQL nghiêm trọng:', error.message);
         throw error;
     }
 };
 
 /**
- * Health check kết nối MySQL
+ * Health check kết nối MySQL kèm đo độ trễ (latency)
  */
 pool.healthCheck = async () => {
+    const startTime = Date.now();
     try {
         await pool.query('SELECT 1');
-        return true;
+        const latencyMs = Date.now() - startTime;
+        return {
+            connected: true,
+            latencyMs
+        };
     } catch (error) {
-        return false;
+        return {
+            connected: false,
+            latencyMs: Date.now() - startTime,
+            error: error.message
+        };
     }
 };
 
@@ -46,9 +53,8 @@ pool.healthCheck = async () => {
 pool.closePool = async () => {
     try {
         await pool.end();
-        console.log('Đã đóng kết nối MySQL pool an toàn.');
     } catch (error) {
-        console.error('Lỗi khi đóng MySQL pool:', error.message);
+        // Ignored during shutdown
     }
 };
 

@@ -1,10 +1,12 @@
-const CACHE_NAME = 'finance-tracker-v1';
+const CACHE_NAME = 'finance-tracker-v2026.10.28';
 
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.webmanifest',
-  '/icon.svg'
+  '/icon.svg',
+  '/icon-192.png',
+  '/icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -29,15 +31,33 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 self.addEventListener('fetch', (event) => {
   const request = event.request;
 
-  // Bỏ qua các API request để luôn lấy dữ liệu mới nhất từ server
-  if (request.url.includes('/api/')) {
+  // TUYỆT ĐỐI KHÔNG CACHE:
+  // 1. Mọi phương thức khác GET (POST, PUT, DELETE, PATCH)
+  if (request.method !== 'GET') {
     return;
   }
 
-  // Network-first với fallback sang Cache cho tài nguyên tĩnh
+  // 2. Mọi API endpoints và health check
+  const url = new URL(request.url);
+  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/health')) {
+    return;
+  }
+
+  // 3. Chỉ cache tài nguyên cùng origin
+  if (url.origin !== self.location.origin) {
+    return;
+  }
+
+  // Chiến lược: Network-first với fallback sang Cache cho tài nguyên tĩnh
   event.respondWith(
     fetch(request)
       .then((response) => {
@@ -61,4 +81,3 @@ self.addEventListener('fetch', (event) => {
       })
   );
 });
-

@@ -9,7 +9,9 @@
     "start": "node server.js",
     "db:migrate": "node ../database/migrate.js",
     "db:status": "node ../database/migrate.js --status",
-    "db:rollback": "node ../database/migrate.js --rollback"
+    "db:rollback": "node ../database/migrate.js --rollback",
+    "db:backup": "node ../database/scripts/backup.js",
+    "db:restore": "node ../database/scripts/restore.js"
   },
   "keywords": [],
   "author": "",

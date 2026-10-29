@@ -1,7 +1,7 @@
 const mysql = require('mysql2/promise');
 const { env } = require('./env');
 
-const pool = mysql.createPool({
+const poolOptions = {
     host: env.db.host,
     port: env.db.port,
     user: env.db.user,
@@ -11,7 +11,19 @@ const pool = mysql.createPool({
     connectionLimit: 10,
     queueLimit: 0,
     charset: 'utf8mb4'
-});
+};
+
+// Cấu hình kết nối mã hóa SSL nếu được bật trong môi trường Production (SPEC 5.2)
+if (env.db.ssl) {
+    poolOptions.ssl = {
+        rejectUnauthorized: env.db.sslRejectUnauthorized
+    };
+    if (env.db.sslCa) {
+        poolOptions.ssl.ca = env.db.sslCa;
+    }
+}
+
+const pool = mysql.createPool(poolOptions);
 
 /**
  * Kiểm tra kết nối database lúc khởi động

@@ -29,7 +29,11 @@ const env = {
         port: parseNumber(process.env.DB_PORT, 3306),
         user: process.env.DB_USER || 'root',
         password: process.env.DB_PASSWORD || '',
-        name: process.env.DB_NAME || 'finance_tracker'
+        name: process.env.DB_NAME || 'finance_tracker',
+        ssl: process.env.DB_SSL === 'true',
+        sslCa: process.env.DB_SSL_CA || null,
+        sslRejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false',
+        backupRetentionDays: parseNumber(process.env.BACKUP_RETENTION_DAYS, 7)
     },
 
     // Security & Auth

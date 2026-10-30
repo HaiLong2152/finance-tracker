@@ -7,6 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon server.js",
     "start": "node server.js",
+    "start:prod": "node ../database/migrate.js && node server.js",
     "db:migrate": "node ../database/migrate.js",
     "db:status": "node ../database/migrate.js --status",
     "db:rollback": "node ../database/migrate.js --rollback",

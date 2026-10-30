@@ -2,6 +2,19 @@ import axios from "axios";
 
 const API_URL = (import.meta.env.VITE_API_URL || "/api").replace(/\/$/, "");
 
+let authToken = typeof window !== "undefined" ? sessionStorage.getItem("auth_token") : null;
+
+export const setAuthToken = (token) => {
+  authToken = token;
+  if (typeof window !== "undefined") {
+    if (token) {
+      sessionStorage.setItem("auth_token", token);
+    } else {
+      sessionStorage.removeItem("auth_token");
+    }
+  }
+};
+
 const apiClient = axios.create({
   baseURL: API_URL,
   timeout: 10000,
@@ -13,6 +26,13 @@ export const setOnUnauthorizedCallback = (cb) => {
   onUnauthorizedCallback = cb;
 };
 
+apiClient.interceptors.request.use((config) => {
+  if (authToken) {
+    config.headers.Authorization = `Bearer ${authToken}`;
+  }
+  return config;
+});
+
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -21,6 +41,7 @@ apiClient.interceptors.response.use(
       error.config?.url !== "/auth/login" &&
       error.config?.url !== "/auth/me"
     ) {
+      setAuthToken(null);
       if (typeof onUnauthorizedCallback === "function") {
         onUnauthorizedCallback();
       }

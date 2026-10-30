@@ -40,12 +40,19 @@ app.use((req, res, next) => {
 // 3. CORS Configuration
 app.use(cors({
     origin: (origin, callback) => {
-        if (!origin || env.cors.origins.includes(origin)) {
+        // Cho phép các request không có origin (như cURL, mobile native app, script nội bộ)
+        if (!origin) {
+            return callback(null, true);
+        }
+        if (env.cors.origins.includes(origin) || env.cors.origins.includes('*')) {
             return callback(null, true);
         }
         return callback(new Error('Origin không được phép truy cập theo chính sách CORS.'));
     },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    exposedHeaders: ['Set-Cookie']
 }));
 
 // 4. Rate Limiter cho các API chung

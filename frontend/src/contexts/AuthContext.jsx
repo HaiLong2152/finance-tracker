@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { authApi, setOnUnauthorizedCallback, getApiErrorMessage } from "../services/api";
+import { authApi, setOnUnauthorizedCallback, getApiErrorMessage, setAuthToken } from "../services/api";
 
 const AuthContext = createContext();
 
@@ -57,6 +57,9 @@ export function AuthProvider({ children }) {
     try {
       const response = await authApi.login(password);
       if (response.data?.success) {
+        if (response.data?.data?.token) {
+          setAuthToken(response.data.data.token);
+        }
         setIsAuthenticated(true);
         return true;
       }
@@ -76,6 +79,7 @@ export function AuthProvider({ children }) {
     } catch {
       // Bỏ qua lỗi mạng khi logout
     } finally {
+      setAuthToken(null);
       setIsAuthenticated(false);
     }
   };

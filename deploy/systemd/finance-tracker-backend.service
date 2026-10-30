@@ -1,0 +1,37 @@
+# ==============================================================================
+# SYSTEMD SERVICE TEMPLATE CHO FINANCE TRACKER BACKEND (LINUX VPS)
+# Đường dẫn cài đặt mẫu: /etc/systemd/system/finance-tracker-backend.service
+# ==============================================================================
+
+[Unit]
+Description=Finance Tracker Backend Node.js Service
+After=network.target mysql.service
+Wants=mysql.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+
+# Thư mục cài đặt mã nguồn
+WorkingDirectory=/var/www/finance-tracker/backend
+
+# Lệnh khởi chạy: Tự động chạy migrations trước khi start server
+ExecStart=/usr/bin/npm run start:prod
+
+# Tự động khởi động lại khi có sự cố
+Restart=always
+RestartSec=5s
+
+# Giới hạn tài nguyên và an toàn
+LimitNOFILE=65535
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=finance-tracker-backend
+
+# Đọc cấu hình biến môi trường production từ file bảo mật ngoài repository (chmod 600)
+EnvironmentFile=/etc/finance-tracker/production.env
+
+[Install]
+WantedBy=multi-user.target
+

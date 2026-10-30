@@ -51,7 +51,16 @@ const env = {
     trustProxy: process.env.TRUST_PROXY === 'true' 
         ? true 
         : (process.env.TRUST_PROXY ? Number(process.env.TRUST_PROXY) || 1 : 1),
-    rateLimitMax: parseNumber(process.env.RATE_LIMIT_MAX, 100)
+    rateLimitMax: parseNumber(process.env.RATE_LIMIT_MAX, 100),
+
+    // Cookie Configuration (SPEC 5.1 & 5.3)
+    cookie: {
+        secure: process.env.COOKIE_SECURE !== undefined
+            ? process.env.COOKIE_SECURE === 'true'
+            : isProduction,
+        sameSite: process.env.COOKIE_SAME_SITE || 'lax', // 'lax' | 'none' | 'strict'
+        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 ngày (SPEC 5.1)
+    }
 };
 
 /**
@@ -95,7 +104,12 @@ const validateEnvironment = () => {
         errors.push('DB_NAME: Chưa cấu hình tên cơ sở dữ liệu MySQL.');
     }
 
-    // 5. Kiểm tra cấu hình Production riêng biệt
+    // 5. Kiểm tra cấu hình Cookie (SPEC 5.3)
+    if (env.cookie.sameSite === 'none' && !env.cookie.secure) {
+        errors.push('COOKIE_SAME_SITE: Khi đặt sameSite="none", bắt buộc COOKIE_SECURE phải là true (yêu cầu của trình duyệt để gửi cookie cross-site).');
+    }
+
+    // 6. Kiểm tra cấu hình Production riêng biệt
     if (isProduction) {
         const hasLocalOrigin = env.cors.origins.some(o => o.includes('localhost') || o.includes('127.0.0.1'));
         if (hasLocalOrigin) {

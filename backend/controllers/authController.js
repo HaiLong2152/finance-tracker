@@ -1,13 +1,14 @@
 const authService = require('../services/authService');
 const AppError = require('../utils/AppError');
+const { env } = require('../config/env');
 
-const COOKIE_OPTIONS = {
+const getCookieOptions = () => ({
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax',
-  maxAge: 30 * 24 * 60 * 60 * 1000, // 30 ngày theo SPEC 5.1
+  secure: env.cookie.secure,
+  sameSite: env.cookie.sameSite,
+  maxAge: env.cookie.maxAge,
   path: '/',
-};
+});
 
 const login = async (req, res, next) => {
   try {
@@ -24,12 +25,12 @@ const login = async (req, res, next) => {
 
     const token = authService.generateToken({ role: 'owner' });
 
-    res.cookie('auth_token', token, COOKIE_OPTIONS);
+    res.cookie('auth_token', token, getCookieOptions());
 
     res.json({
       success: true,
       message: 'Đăng nhập thành công.',
-      data: { authenticated: true },
+      data: { authenticated: true, token },
     });
   } catch (error) {
     next(error);
@@ -40,8 +41,8 @@ const logout = async (req, res, next) => {
   try {
     res.clearCookie('auth_token', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: env.cookie.secure,
+      sameSite: env.cookie.sameSite,
       path: '/',
     });
 

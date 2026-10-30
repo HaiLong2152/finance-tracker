@@ -1,0 +1,95 @@
+# ==============================================================================
+# DOCKER COMPOSE CHO FINANCE TRACKER (PRODUCTION / STAGING)
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # Cơ sở dữ liệu MySQL
+  # ----------------------------------------------------------------------------
+  mysql:
+    image: mysql:8.4
+    container_name: finance-tracker-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_secure_password_2026}
+      MYSQL_DATABASE: ${DB_NAME:-finance_tracker}
+      MYSQL_USER: ${DB_USER:-finance_app_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-app_secure_password_2026}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/production_setup.sql:/docker-entrypoint-initdb.d/01_setup.sql:ro
+    networks:
+      - internal_net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ----------------------------------------------------------------------------
+  # Backend Node.js Service
+  # ----------------------------------------------------------------------------
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: finance-tracker-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-finance_tracker}
+      DB_USER: ${DB_USER:-finance_app_user}
+      DB_PASSWORD: ${DB_PASSWORD:-app_secure_password_2026}
+      AUTH_PASSWORD: ${AUTH_PASSWORD}
+      AUTH_PASSWORD_HASH: ${AUTH_PASSWORD_HASH}
+      JWT_SECRET: ${JWT_SECRET}
+      INGEST_TOKEN: ${INGEST_TOKEN}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+      TRUST_PROXY: ${TRUST_PROXY:-1}
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-100}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      COOKIE_SAME_SITE: ${COOKIE_SAME_SITE:-lax}
+    networks:
+      - internal_net
+      - public_net
+    expose:
+      - "5000"
+
+  # ----------------------------------------------------------------------------
+  # Nginx Reverse Proxy (Frontend & API Gateway)
+  # ----------------------------------------------------------------------------
+  nginx:
+    image: nginx:alpine
+    container_name: finance-tracker-nginx
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./frontend/dist:/usr/share/nginx/html:ro
+      - certs_data:/etc/nginx/certs:ro
+    networks:
+      - public_net
+
+volumes:
+  mysql_data:
+    driver: local
+  certs_data:
+    driver: local
+
+networks:
+  internal_net:
+    driver: bridge
+    internal: true
+  public_net:
+    driver: bridge
+

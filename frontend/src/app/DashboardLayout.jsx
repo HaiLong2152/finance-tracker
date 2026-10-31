@@ -2,6 +2,7 @@ import { NavLink, Outlet } from "react-router-dom";
 import { useUI } from "../contexts/UIContext";
 import { useAuth } from "../contexts/AuthContext";
 import { useInbox } from "../contexts/InboxContext";
+import { usePwa } from "../contexts/PwaContext";
 import QuickAddModal from "../features/transactions/QuickAddModal";
 import BrandLogo from "../components/BrandLogo";
 
@@ -77,9 +78,23 @@ function DashboardLayout() {
   const { error, notice, isQuickAddOpen, openQuickAdd, closeQuickAdd } = useUI();
   const { logout } = useAuth();
   const { unreadCount } = useInbox();
+  const { isInstallable, isInstalled, hasUpdate, installPwa, updatePwa } = usePwa();
 
   return (
     <div className="app-shell">
+      {/* Banner cập nhật phiên bản PWA mới */}
+      {hasUpdate && (
+        <div className="pwa-update-banner" role="alert">
+          <div className="pwa-update-content">
+            <span className="pwa-update-icon">🚀</span>
+            <span>Đã có phiên bản mới của Finance Tracker.</span>
+          </div>
+          <button type="button" className="pwa-update-btn" onClick={updatePwa}>
+            Cập nhật ngay ↻
+          </button>
+        </div>
+      )}
+
       {/* Sidebar trên Desktop */}
       <aside className="sidebar">
         <div className="brand">
@@ -106,8 +121,24 @@ function DashboardLayout() {
           ))}
         </nav>
 
-        {/* Nút Nhập nhanh & Đăng xuất trên Sidebar desktop */}
+        {/* Nút Nhập nhanh, Cài đặt PWA & Đăng xuất trên Sidebar desktop */}
         <div className="sidebar-bottom-actions">
+          {isInstallable && !isInstalled && (
+            <button
+              type="button"
+              className="sidebar-install-btn"
+              onClick={installPwa}
+              title="Cài đặt ứng dụng lên thiết bị"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              <span>Cài ứng dụng</span>
+            </button>
+          )}
+
           <button
             type="button"
             className="sidebar-quick-add-btn"
@@ -138,6 +169,18 @@ function DashboardLayout() {
           <span>Finance Tracker</span>
         </div>
         <div className="mobile-header-actions">
+          {isInstallable && !isInstalled && (
+            <button
+              type="button"
+              className="mobile-install-btn"
+              onClick={installPwa}
+              aria-label="Cài đặt ứng dụng"
+              title="Cài đặt ứng dụng"
+            >
+              ⬇ Cài App
+            </button>
+          )}
+
           <NavLink
             to="/inbox"
             className="mobile-inbox-btn"

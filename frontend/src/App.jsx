@@ -17,6 +17,7 @@ import { TransactionProvider, useTransactions } from "./contexts/TransactionCont
 import { BudgetProvider } from "./contexts/BudgetContext";
 import { ReportProvider, useReports } from "./contexts/ReportContext";
 import { InboxProvider, useInbox } from "./contexts/InboxContext";
+import { PwaProvider } from "./contexts/PwaContext";
 
 function AppContent() {
   const { isAuthenticated, isChecking } = useAuth();
@@ -68,21 +69,23 @@ function AppContent() {
 function App() {
   return (
     <UIProvider>
-      <AuthProvider>
-        <BudgetProvider>
-          <CategoryProvider>
-            <AccountProvider>
-              <ReportProvider>
-                <TransactionProvider>
-                  <InboxProvider>
-                    <AppContent />
-                  </InboxProvider>
-                </TransactionProvider>
-              </ReportProvider>
-            </AccountProvider>
-          </CategoryProvider>
-        </BudgetProvider>
-      </AuthProvider>
+      <PwaProvider>
+        <AuthProvider>
+          <BudgetProvider>
+            <CategoryProvider>
+              <AccountProvider>
+                <ReportProvider>
+                  <TransactionProvider>
+                    <InboxProvider>
+                      <AppContent />
+                    </InboxProvider>
+                  </TransactionProvider>
+                </ReportProvider>
+              </AccountProvider>
+            </CategoryProvider>
+          </BudgetProvider>
+        </AuthProvider>
+      </PwaProvider>
     </UIProvider>
   );
 }

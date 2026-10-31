@@ -3583,3 +3583,100 @@ tr.row-selected {
   color: #64748b;
 }
 
+/* ==================== BƯỚC 5.4: PWA UPDATE BANNER & INSTALL BUTTONS ==================== */
+.pwa-update-banner {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: #1e3a2b;
+  color: #ecfdf5;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.pwa-update-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.pwa-update-icon {
+  font-size: 16px;
+}
+
+.pwa-update-btn {
+  background: #22c55e;
+  color: #064e3b;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.pwa-update-btn:hover {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+.sidebar-install-btn {
+  width: 100%;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 9px;
+  background: #25815e;
+  border: 1px solid #2da679;
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sidebar-install-btn:hover {
+  background: #1d6a4d;
+  color: #ffffff;
+}
+
+.mobile-install-btn {
+  background: #25815e;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mobile-install-btn:hover {
+  background: #1d6a4d;
+}
+
+

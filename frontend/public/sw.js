@@ -46,9 +46,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 2. Mọi API endpoints và health check
+  // 2. Mọi API endpoints, auth endpoints và health check (SPEC 5.4: Không cache API hoặc dữ liệu đăng nhập)
   const url = new URL(request.url);
-  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/health')) {
+  if (
+    url.pathname.startsWith('/api/') || 
+    url.pathname.startsWith('/health') ||
+    url.pathname.includes('/auth') ||
+    url.searchParams.has('token')
+  ) {
     return;
   }
 
@@ -62,10 +67,14 @@ self.addEventListener('fetch', (event) => {
     fetch(request)
       .then((response) => {
         if (response && response.status === 200 && response.type === 'basic') {
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseToCache);
-          });
+          // Tôn trọng chỉ thị Cache-Control từ server (không lưu cache nếu có no-store hoặc no-cache)
+          const cacheControl = response.headers.get('cache-control') || '';
+          if (!cacheControl.includes('no-store') && !cacheControl.includes('no-cache')) {
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, responseToCache);
+            });
+          }
         }
         return response;
       })

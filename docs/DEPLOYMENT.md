@@ -105,3 +105,34 @@ Cấu hình mẫu đã được chuẩn bị sẵn trong repository:
 - [x] Tự động chạy migrations lúc khởi động (`npm run start:prod`).
 - [x] Đã thử nghiệm sao lưu (`npm run db:backup`) và phục hồi (`npm run db:restore`).
 
+---
+
+## 6. Hướng Dẫn Triển Khai Frontend & PWA (SPEC 5.4)
+
+### 6.1 Build Frontend cho Production
+```bash
+cd frontend
+npm ci
+npm run build
+# Thư mục build đầu ra: frontend/dist/
+```
+
+- **Khi chạy cùng domain với Backend qua Reverse Proxy (Nginx / Docker Compose)**:
+  Không cần cấu hình gì thêm. Frontend mặc định gọi API tương đối qua `/api`.
+- **Khi deploy Frontend độc lập (Vercel, Netlify, Cloudflare Pages)**:
+  Khai báo biến môi trường lúc build:
+  ```bash
+  VITE_API_URL=https://api-finance.yourdomain.com/api
+  ```
+
+### 6.2 Cấu hình Fallback Client-side Routing (SPA)
+- **Nginx**: Đã cấu hình `try_files $uri $uri/ /index.html;` trong `deploy/nginx/conf.d/default.conf`.
+- **Netlify / Cloudflare Pages**: Tự động sử dụng `frontend/public/_redirects` (`/*  /index.html  200`).
+- **Vercel**: Tự động áp dụng `frontend/vercel.json` rewrite toàn bộ đường dẫn về `/index.html`.
+
+### 6.3 Tính Năng PWA & Cập Nhật Tự Động
+- **Cài đặt ứng dụng (PWA)**: Hỗ trợ nút "Cài ứng dụng" trên thanh điều hướng Desktop & Mobile khi trình duyệt hỗ trợ `beforeinstallprompt`.
+- **Cập nhật phiên bản mới**: Service Worker tự động phát hiện bản build mới và hiển thị banner "🚀 Đã có phiên bản mới của Finance Tracker. [Cập nhật ngay]".
+- **An toàn bảo mật Cache**: Service Worker tuyệt đối không lưu cache cho các API responses (`/api/*`), dữ liệu đăng nhập (`/auth/*`), và luôn tôn trọng header `Cache-Control: no-store`.
+
+

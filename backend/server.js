@@ -185,10 +185,15 @@ const startServer = async () => {
         server = app.listen(env.PORT, () => {
             logger.info(`Server đang chạy tại http://localhost:${env.PORT} [ENV: ${env.NODE_ENV}]`, null, 'SERVER');
         });
+        return server;
     } catch (error) {
         logger.error('Không thể khởi động server', error.message, 'SERVER');
         process.exit(1);
     }
 };
 
-startServer();
+if (require.main === module) {
+    startServer();
+}
+
+module.exports = { app, startServer, gracefulShutdown };
